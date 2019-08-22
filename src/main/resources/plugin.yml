@@ -1,0 +1,20 @@
+name: InspectorUHC
+version: 1.0-SNAPSHOT
+description: An original UHC plugin.
+main: me.pjsph.inspectoruhc.InspectorUHC
+author: pjsph
+
+commands:
+  iu:
+    description: InspectorUHC base command
+    usage: /<ommand> <subcommand>
+
+permissions:
+  iu.*:
+    description: Gives access to all /iu commands.
+    children:
+      iu.start: true
+
+  iu.start:
+    description: Alllow to /kill players from the game.
+    default: op
