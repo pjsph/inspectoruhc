@@ -2,10 +2,7 @@ package me.pjsph.inspectoruhc.borders;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.task.BorderWarningTask;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -73,7 +70,7 @@ public class BorderManager {
     public Set<Player> getPlayersOutside(int diameter) {
         HashSet<Player> playersOutside = new HashSet<Player>();
 
-        for(final Player player : p.getGameManager().getAllPlayers()) {
+        for(final Player player : p.getGameManager().getOnlineAlivePlayers()) {
             if(!isInsideBorder(player.getLocation(), diameter)) {
                 playersOutside.add(player);
             }

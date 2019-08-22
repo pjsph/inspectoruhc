@@ -33,9 +33,9 @@ public class MeCommand extends AbstractCommand {
             } else if(!plugin.getGameManager().isRolesActivated()) {
                 sender.sendMessage(ChatColor.RED + "Vous n'avez ni d'équipe ni de kit pour l'instant.");
             } else if(!plugin.getGameManager().isKitsActivated()) {
-                sender.sendMessage("Déjà oublié ? Vous êtes dans l'équipe : " + plugin.getTeamManager().getPlayersTeam().get((Player) sender).getName());
+                sender.sendMessage("Déjà oublié ? Vous êtes dans l'équipe : " + (Team.getTeamForPlayer((Player) sender) != null ? Team.getTeamForPlayer((Player) sender).getName() : ""));
             } else {
-                String teamName = plugin.getTeamManager().getPlayersTeam().get((Player) sender).getName();
+                String teamName = Team.getTeamForPlayer((Player) sender) != null ? Team.getTeamForPlayer((Player) sender).getName() : "";
                 sender.sendMessage("Déjà oublié ? Vous êtes dans l'équipe : " + teamName);
                 if(teamName == "Inspecteurs") {
                     sender.sendMessage("Votre kit est le suivant : " + Kit.getFromOwner(((Player) sender).getUniqueId()).getName());

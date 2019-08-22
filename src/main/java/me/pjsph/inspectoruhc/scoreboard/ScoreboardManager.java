@@ -1,6 +1,7 @@
 package me.pjsph.inspectoruhc.scoreboard;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
+import me.pjsph.inspectoruhc.teams.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -34,8 +35,8 @@ public class ScoreboardManager {
 
         ob.getScore("  ").setScore(-1);
         ob.getScore(ChatColor.GRAY + txt + ChatColor.RESET + plugin.getTimerManager().getEpisode()).setScore(-2);
-        ob.getScore("" + plugin.getGameManager().countAllPlayers() + " " + ChatColor.GRAY + "Joueurs").setScore(-3);
-        ob.getScore("" + plugin.getTeamManager().getTeams().size() + ChatColor.GRAY + " Equipes").setScore(-4);
+        ob.getScore("" + plugin.getGameManager().getAlivePlayers().size() + " " + ChatColor.GRAY + "Joueurs").setScore(-3);
+        ob.getScore("" + Team.getTeams().size() + ChatColor.GRAY + " Equipes").setScore(-4);
         ob.getScore("").setScore(-5);
         ob.getScore("" + ml + ChatColor.GRAY + ":" + ChatColor.RESET + sl).setScore(-6);
 

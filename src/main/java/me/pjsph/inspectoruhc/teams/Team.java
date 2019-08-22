@@ -1,66 +1,130 @@
 package me.pjsph.inspectoruhc.teams;
 
-import me.pjsph.inspectoruhc.InspectorUHC;
+import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class Team {
-    private String name = null;
-    private ArrayList<Player> players = new ArrayList<>();
-    private ChatColor color = null;
-    private org.bukkit.scoreboard.Team scoreboardTeam = null;
+public enum Team {
 
-    public Team(String name, ChatColor color, org.bukkit.scoreboard.Team scoreboardTeam) {
+    INSPECTORS("Inspecteurs", ChatColor.DARK_AQUA),
+    THIEVES("Criminels", ChatColor.RED);
+
+    private String name;
+    private ChatColor color;
+
+    private HashSet<UUID> players = new HashSet<>();
+
+    Team(String name, ChatColor color) {
         this.name = name;
         this.color = color;
-        this.scoreboardTeam= scoreboardTeam;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public ArrayList<Player> getPlayers() {
-        return players;
-    }
-
-    public void addPlayer(Player player) {
-        this.scoreboardTeam.addEntry(player.getName());
-        player.setPlayerListName(this.color + " " + player.getDisplayName());
-        players.add(player);
-        InspectorUHC.get().getTeamManager().getPlayersTeam().put(player, this);
-    }
-
-    public void removePlayer(Player player) {
-        this.scoreboardTeam.removeEntry(player.getName());
-        player.setPlayerListName(player.getDisplayName());
-        players.remove(player);
-        InspectorUHC.get().getTeamManager().getPlayersTeam().remove(player);
-    }
-
-    public int countPlayer() {
-        return players.size();
-    }
-
     public ChatColor getColor() {
         return color;
     }
 
-    public void setColor(ChatColor color) {
-        this.color = color;
+    public Set<OfflinePlayer> getPlayers() {
+        final Set<OfflinePlayer> playersList = new HashSet<>();
+
+        for(UUID id : players) {
+            final Player player = Bukkit.getPlayer(id);
+            if(player != null)
+                playersList.add(player);
+
+            else
+                playersList.add(Bukkit.getOfflinePlayer(id));
+        }
+
+        return playersList;
     }
 
-    public org.bukkit.scoreboard.Team getScoreboardTeam() {
-        return scoreboardTeam;
+    public Set<Player> getOnlinePlayers() {
+        HashSet<Player> playersList = new HashSet<>();
+
+        for(UUID id : players) {
+            Player player = Bukkit.getPlayer(id);
+            if(player != null && player.isOnline()) {
+                playersList.add(player);
+            }
+        }
+
+        return playersList;
     }
 
-    public void setScoreboardTeam(org.bukkit.scoreboard.Team scoreboardTeam) {
-        this.scoreboardTeam = scoreboardTeam;
+    public Set<UUID> getPlayersUUID() {
+        return Collections.unmodifiableSet(players);
+    }
+
+    public Set<UUID> getOnlinePlayersUUID() {
+        HashSet<UUID> playersList = new HashSet<>();
+
+        for(UUID id : players) {
+            Player player = Bukkit.getPlayer(id);
+            if(player != null && player.isOnline()) {
+                playersList.add(id);
+            }
+        }
+
+        return playersList;
+    }
+
+    public int getSize() {
+        return players.size();
+    }
+
+    public boolean isEmpty() {
+        return getSize() == 0;
+    }
+
+    public void addPlayer(OfflinePlayer player) {
+        Validate.notNull(player, "The player cannot be null.");
+
+        Team.removePlayerFromTeam(player);
+
+        players.add(player.getUniqueId());
+    }
+
+    public void removePlayer(OfflinePlayer player) {
+        Validate.notNull(player, "The player cannot be null.");
+
+        players.remove(player.getUniqueId());
+    }
+
+    public boolean containsPlayer(Player player) {
+        Validate.notNull(player, "The player cannot be null.");
+
+        return players.contains(player.getUniqueId());
+    }
+
+    public boolean containsPlayer(UUID id) {
+        Validate.notNull(id, "The player cannot be null.");
+
+        return players.contains(id);
+    }
+
+    public static Team getTeamForPlayer(OfflinePlayer player) {
+        return getTeams().stream().filter(t -> t.getPlayers().contains(player)).findFirst().orElse(null);
+    }
+
+    public static Set<Team> getTeams() {
+        return Stream.of(values()).collect(Collectors.toSet());
+    }
+
+    public static void removePlayerFromTeam(OfflinePlayer player) {
+        Team team = Arrays.stream(values()).filter(t -> t.containsPlayer(player.getUniqueId())).findFirst().orElse(null);
+
+        if(team != null) {
+            team.removePlayer(player);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package me.pjsph.inspectoruhc.game;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
+import me.pjsph.inspectoruhc.events.GameStartsEvent;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
@@ -11,36 +12,80 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class GameManager {
     private InspectorUHC plugin;
-
-    private ArrayList<Player> players = new ArrayList<>();
 
     private boolean hasStarted = false;
     private boolean rolesActivated = false;
     private boolean kitsActivated = false;
     private boolean invincible = true;
 
+    private Set<String> players = new HashSet<>();
+    private Set<UUID> alivePlayers = new HashSet<>();
+    private Set<UUID> spectators = new HashSet<>();
+    private Map<UUID, Location> deathLocations = new HashMap<>();
+
     public GameManager(InspectorUHC plugin) {
         this.plugin = plugin;
     }
 
+    public void initPlayer(final Player player) {
+        Location loc = player.getWorld().getSpawnLocation().add(0.5, 0.5, 0.5);
+        player.teleport(loc);
+
+        player.setFoodLevel(20);
+        player.setSaturation(20f);
+        player.setHealth(20d);
+
+        /* TODO scoreboard manager */
+
+        plugin.getSpectatorsManager().setSpectating(player, false);
+
+        player.removeAchievement(Achievement.OPEN_INVENTORY);
+
+        if(player.isOp()) {
+            player.setGameMode(GameMode.CREATIVE);
+        } else {
+            player.setGameMode(GameMode.ADVENTURE);
+        }
+    }
+
     public void start(Player player) {
         if(!hasStarted()) {
+
+            /* Initialization of the teams */
+
+            alivePlayers.clear();
+
             startRandomizeRoles(player);
+
+            /* Initialization of the players */
+
+            Team.getTeams().forEach(
+                            team -> team.getPlayers().stream()
+                                        .map(OfflinePlayer::getUniqueId)
+                                        .filter(id -> !spectators.contains(id))
+                                        .forEach(id -> alivePlayers.add(id))
+            );
+
+            /* Initialization of the spectator mode */
+
+            Bukkit.getOnlinePlayers().forEach(p -> plugin.getSpectatorsManager().setSpectating(p, spectators.contains(p.getUniqueId())));
+
+            /* Initialization of the timer */
 
             plugin.getTimerManager().setMinutesLeft(20);
             plugin.getTimerManager().incEpisode();
-            setStarted(true);
             plugin.getTimerManager().setMinutesRolesLeft(5);
             plugin.getTimerManager().setMinutesKitsLeft(10);
+
+            setStarted(true);
+
+            /* Start messages */
 
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "La partie démarre...");
 
@@ -65,15 +110,10 @@ public class GameManager {
                         w.setDifficulty(Difficulty.HARD);
                     }
 
-                    for(Entry<String, Team> entry : plugin.getTeamManager().getTeams().entrySet()) {
-                        Team team = entry.getValue();
+                    for(String name : plugin.getGameManager().getPlayers()) {
+                        Player player = Bukkit.getPlayer(name);
+                        if(player == null || !player.isOnline()) return;
 
-                        if(team.countPlayer() != 0) {
-                            team.getScoreboardTeam().setAllowFriendlyFire(true);
-                        }
-                    }
-
-                    for(Player player : plugin.getGameManager().getAllPlayers()) {
                         player.setGameMode(GameMode.SURVIVAL);
                         player.setExp(0f);
                         player.setLevel(0);
@@ -86,8 +126,6 @@ public class GameManager {
 
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20, 255));
                     }
-
-                    plugin.getBorderManager().scheduleBorderReduction();
                 }
             }, 60L);
 
@@ -95,12 +133,12 @@ public class GameManager {
                 activateDamages();
                 plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
             }, 660L);
+
+            Bukkit.getPluginManager().callEvent(new GameStartsEvent());
         }
     }
 
     public void finish(int cause) {
-        if(cause == 0)
-            plugin.getServer().broadcastMessage(ChatColor.GREEN + "Partie terminée ! Bravo à l'équipe des " + plugin.getTeamManager().getPlayersTeam().get(players.get(0)).getName());
     }
 
     private void startRandomizeRoles(Player p) {
@@ -109,49 +147,45 @@ public class GameManager {
         // Select teams
         int rand = 0;
 
-        ArrayList<Player> players = new ArrayList<>(plugin.getGameManager().getAllPlayers());
-        plugin.getLogger().log(Level.INFO, "Joueurs : " + players.size());
+        ArrayList<Player> playersToChoose = new ArrayList<>(Bukkit.getOnlinePlayers().stream().filter(player -> !spectators.contains(player.getUniqueId())).collect(Collectors.toList()));
         ArrayList<Player> chosenPlayers = new ArrayList<>();
-        ArrayList<String> teamsName = new ArrayList<>();
-        Iterator<String> it = plugin.getTeamManager().getTeams().keySet().iterator();
+        plugin.getLogger().log(Level.INFO,  "Teams: " + Team.values().length);
 
-        while(it.hasNext()) {
-            teamsName.add(it.next());
-        }
+        int allPlayers = playersToChoose.size();
 
-        for(int i = 0; i < plugin.getGameManager().getAllPlayers().size(); i++) {
+        for(int i = 0; i < allPlayers; i++) {
             boolean check = false;
 
             // Choose a team to put a player in
             while(check == false) {
-                int randTeam = random.nextInt(plugin.getTeamManager().getTeams().size());
+                int randTeam = random.nextInt(Team.values().length);
 
-                Team team = plugin.getTeamManager().getTeams().get(teamsName.get(randTeam));
+                Team team = Team.values()[randTeam];
                 plugin.getLogger().log(Level.INFO, "Team : " + team.getName() + ", Players : " + team.getPlayers().size());
-                if(!(team.getPlayers().size() >= Math.floorDiv(getAllPlayers().size(), 2))) {
+                if(!(team.getPlayers().size() >= Math.floorDiv(allPlayers, 2))) {
                     while(check == false) {
-                        rand = random.nextInt(players.size());
+                        rand = random.nextInt(playersToChoose.size());
 
-                        if(!chosenPlayers.contains(players.get(rand))) {
-                            team.addPlayer(players.get(rand));
+                        if(!chosenPlayers.contains(playersToChoose.get(rand))) {
+                            team.addPlayer(Bukkit.getOfflinePlayer(playersToChoose.get(rand).getUniqueId()));
 
-                            plugin.getLogger().log(Level.INFO, ChatColor.AQUA + "[SPOIL] " + players.get(rand).getName() + " rejoint l'equipe " + team.getName());
+                            plugin.getLogger().log(Level.INFO, "[SPOIL] " + playersToChoose.get(rand).getName() + " rejoint l'equipe " + team.getName());
 
-                            chosenPlayers.add(players.get(rand));
-                            players.remove(rand);
+                            chosenPlayers.add(playersToChoose.get(rand));
+                            playersToChoose.remove(rand);
 
                             check = true;
                         }
                     }
-                } else if(plugin.getTeamManager().getTeams().get(teamsName.get(0)).getPlayers().size() == plugin.getTeamManager().getTeams().get(teamsName.get(1)).getPlayers().size()) {
+                } else if(Team.INSPECTORS.getPlayers().size() == Team.THIEVES.getPlayers().size()) {
                     // Same amount of players in the two teams but a player is still teamless, we had him in the Inspectors team
-                    if(players.get(0) != null) {
-                        plugin.getTeamManager().getTeams().get("Inspecteurs").addPlayer(players.get(0));
+                    if(playersToChoose.get(0) != null) {
+                        Team.INSPECTORS.addPlayer(Bukkit.getOfflinePlayer(playersToChoose.get(0).getUniqueId()));
 
-                        plugin.getLogger().log(Level.INFO, ChatColor.AQUA + "[SPOIL] " + players.get(0).getName() + " rejoint l'equipe Inspecteurs");
+                        plugin.getLogger().log(Level.INFO, "[SPOIL] " + playersToChoose.get(0).getName() + " rejoint l'equipe Inspecteurs");
 
-                        chosenPlayers.add(players.get(0));
-                        players.remove(0);
+                        chosenPlayers.add(playersToChoose.get(0));
+                        playersToChoose.remove(0);
 
                         p.sendMessage(ChatColor.RED + "Le nombre de joueurs connectés n'est pas pair. Les équipes ne seront pas de la même taille.\n" +
                                 "L'équipe des " + ChatColor.DARK_AQUA + "Inspecteurs" + ChatColor.RED + " aura 1 joueur de plus.");
@@ -173,7 +207,7 @@ public class GameManager {
             }
         }
 
-        for(Player player : plugin.getTeamManager().getTeams().get("Inspecteurs").getPlayers()) {
+        for(Player player : Team.INSPECTORS.getOnlinePlayers()) {
             if(player != null) {
                 UUID uuid = player.getUniqueId();
 
@@ -189,67 +223,11 @@ public class GameManager {
     }
 
     public void updatePlayer(Player newPlayer) {
-        Player oldPlayer = getPlayerInTeamsByName(newPlayer.getName());
 
-        if(oldPlayer != null) {
-            Inventory inv = oldPlayer.getInventory();
-            newPlayer.getInventory().setContents(inv.getContents());
-
-            Team team = plugin.getTeamManager().getTeamOfPlayer(oldPlayer);
-
-            if(team != null) {
-                if(team.getPlayers().contains(oldPlayer)) {
-                    team.removePlayer(oldPlayer);
-                }
-
-                team.addPlayer(newPlayer);
-            }
-
-            if(plugin.getTeamManager().getPlayersTeam().containsKey(oldPlayer)) {
-                plugin.getTeamManager().getPlayersTeam().remove(oldPlayer);
-            }
-
-            plugin.getTeamManager().getPlayersTeam().put(newPlayer, team);
-
-            getAllPlayers().remove(oldPlayer);
-        }
-
-        players.add(newPlayer);
-    }
-
-    public Player getPlayerInTeamsByName(String name) {
-        Player player = null;
-
-        Iterator<Player> it = getAllPlayers().iterator();
-
-        while(it.hasNext() && player == null) {
-            Player tmpPlayer = it.next();
-
-            if(tmpPlayer.getName().equalsIgnoreCase(name)) {
-                player = tmpPlayer;
-            }
-        }
-
-        return player;
-    }
-
-    public int countAllPlayers() {
-        int count = 0;
-
-        Iterator<Team> it = plugin.getTeamManager().getTeams().values().iterator();
-        while(it.hasNext()) {
-            count += it.next().countPlayer();
-        }
-
-        return count;
     }
 
     public void activateDamages() {
         this.invincible = false;
-    }
-
-    public ArrayList<Player> getAllPlayers() {
-        return players;
     }
 
     public boolean isRolesActivated() {
@@ -274,5 +252,23 @@ public class GameManager {
 
     public void setStarted(boolean hasStarted) {
         this.hasStarted = hasStarted;
+    }
+
+    public Set<String> getPlayers() {
+        return players;
+    }
+
+    public Set<OfflinePlayer> getAlivePlayers() {
+        return alivePlayers.stream()
+                .map(id -> plugin.getServer().getOfflinePlayer(id))
+                .collect(Collectors.toSet());
+    }
+
+    public HashSet<Player> getOnlineAlivePlayers() {
+        return alivePlayers.stream()
+                .map(id -> plugin.getServer().getPlayer(id))
+                .filter(Objects::nonNull)
+                .filter(Player::isOnline)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 }
