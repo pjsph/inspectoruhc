@@ -29,6 +29,8 @@ public class GameManager {
     private Set<UUID> spectators = new HashSet<>();
     private Map<UUID, Location> deathLocations = new HashMap<>();
 
+    private int aliveTeamsCount = 0;
+
     public GameManager(InspectorUHC plugin) {
         this.plugin = plugin;
     }
@@ -40,8 +42,6 @@ public class GameManager {
         player.setFoodLevel(20);
         player.setSaturation(20f);
         player.setHealth(20d);
-
-        /* TODO scoreboard manager */
 
         plugin.getSpectatorsManager().setSpectating(player, false);
 
@@ -60,6 +60,7 @@ public class GameManager {
             /* Initialization of the teams */
 
             alivePlayers.clear();
+            aliveTeamsCount = 0;
 
             startRandomizeRoles(player);
 
@@ -71,6 +72,10 @@ public class GameManager {
                                         .filter(id -> !spectators.contains(id))
                                         .forEach(id -> alivePlayers.add(id))
             );
+
+            updateAliveCache();
+
+            /* TODO Teleportation */
 
             /* Initialization of the spectator mode */
 
@@ -138,7 +143,37 @@ public class GameManager {
         }
     }
 
-    public void finish(int cause) {
+    public void finish() {
+        if(!hasStarted()) {
+            throw new IllegalStateException("Cannot finish the game: the game is not started.");
+        }
+
+        if(getAliveTeamsCount() != 1) {
+            throw new IllegalStateException("Cannot finish the game: more/less than one team are alive.");
+        }
+
+        Team winnerTeam = getAliveTeams().size() == 0 ? Team.INSPECTORS : getAliveTeams().iterator().next();
+        Set<OfflinePlayer> listWinners = winnerTeam.getPlayers();
+
+        StringBuilder winners = new StringBuilder();
+        int j = 0;
+
+        for(OfflinePlayer winner : listWinners) {
+            if(j != 0) {
+                if(j == listWinners.size() - 1) {
+                    winners.append(" ").append("and").append(" ");
+                } else {
+                    winners.append(", ");
+                }
+            }
+
+            winners.append(winner.getName());
+            j++;
+        }
+
+        Bukkit.broadcastMessage("§2Bravo à §e" + winners.toString() + " §2(" + winnerTeam.getColor() + winnerTeam.getName() + "§2) pour leur victoire !");
+
+        /* TODO title */
     }
 
     private void startRandomizeRoles(Player p) {
@@ -222,8 +257,70 @@ public class GameManager {
 
     }
 
-    public void updatePlayer(Player newPlayer) {
+    public void updateAliveCache() {
+        Set<Team> aliveTeams = new HashSet<>();
+        for(Team team : Team.values()) {
+            for(UUID pid : team.getPlayersUUID()) {
+                if(!this.isPlayerDead(pid)) aliveTeams.add(team);
+            }
+        }
 
+        this.aliveTeamsCount = aliveTeams.size();
+    }
+
+    public Set<Team> getAliveTeams() {
+        Set<Team> aliveTeams = new HashSet<>();
+        for(Team team : Team.values()) {
+            for(UUID pid : team.getPlayersUUID()) {
+                if(!this.isPlayerDead(pid)) aliveTeams.add(team);
+            }
+        }
+
+        return aliveTeams;
+    }
+
+
+    public void addDead(Player player) {
+        alivePlayers.remove(player.getUniqueId());
+        /* TODO update cache */
+    }
+
+    public void addDead(UUID player) {
+        alivePlayers.remove(player);
+        /* TODO update cache */
+    }
+
+    public boolean isPlayerDead(Player player) {
+        return !alivePlayers.contains(player.getUniqueId());
+    }
+
+    public boolean isPlayerDead(UUID player) {
+        return !alivePlayers.contains(player);
+    }
+
+    public void addStartupSpectator(OfflinePlayer player) {
+        spectators.add(player.getUniqueId());
+    }
+
+    public void removeStartupSpectator(OfflinePlayer player) {
+        spectators.remove(player.getUniqueId());
+    }
+
+    public HashSet<String> getStartupSpectators() {
+        HashSet<String> spectatorNames = new HashSet<>();
+
+        for(UUID id : spectators) {
+            final OfflinePlayer player = Bukkit.getOfflinePlayer(id);
+            final String playerName = player.getName();
+
+            if(playerName != null) {
+                spectatorNames.add(playerName);
+            } else {
+                spectatorNames.add("Unknown player with UUID " + player.getUniqueId());
+            }
+        }
+
+        return spectatorNames;
     }
 
     public void activateDamages() {
@@ -256,6 +353,14 @@ public class GameManager {
 
     public Set<String> getPlayers() {
         return players;
+    }
+
+    public int getAliveTeamsCount() {
+        return aliveTeamsCount;
+    }
+
+    public void addDeathLocation(Player player, Location location) {
+        deathLocations.put(player.getUniqueId(), location);
     }
 
     public Set<OfflinePlayer> getAlivePlayers() {

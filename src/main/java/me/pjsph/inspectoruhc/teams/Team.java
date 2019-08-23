@@ -116,6 +116,10 @@ public enum Team {
         return getTeams().stream().filter(t -> t.getPlayers().contains(player)).findFirst().orElse(null);
     }
 
+    public static boolean inSameTeam(Player player1, Player player2) {
+        return (getTeamForPlayer(player1).equals(getTeamForPlayer(player2)));
+    }
+
     public static Set<Team> getTeams() {
         return Stream.of(values()).collect(Collectors.toSet());
     }

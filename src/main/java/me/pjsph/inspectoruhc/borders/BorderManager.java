@@ -157,8 +157,8 @@ public class BorderManager {
 
                 border.setDiameter(BORDER_SHRINKING_FINAL_SIZE, BORDER_SHRINKING_DURATION);
 
-                Bukkit.broadcastMessage(ChatColor.RED + "" + ChatColor.BOLD + "La bordure commence à rétrécir...");
-                Bukkit.broadcastMessage(ChatColor.RED + "Elle rétrécira d'un block toutes les " + secondsPerBlock + " secondes jusqu'à " + (int) BORDER_SHRINKING_FINAL_SIZE + " blocks de diamètre.");
+                Bukkit.broadcastMessage("§c§lLa bordure commence à rétrécir...");
+                Bukkit.broadcastMessage("§6Elle rétrécira d'un block toutes les " + secondsPerBlock + " secondes jusqu'à " + (int) BORDER_SHRINKING_FINAL_SIZE + " blocks de diamètre.");
             }, BORDER_SHRINKING_STARTS_AFTER * 20L);
         }
     }

@@ -53,8 +53,7 @@ public class MeCommand extends AbstractCommand {
     @Override
     public List<String> help(CommandSender sender) {
         return Arrays.asList(ChatColor.YELLOW + "------- En jeu -------",
-                "Utilisation : " + ChatColor.ITALIC + "/iu me" + ChatColor.GRAY + " pour connaître son équipe et/ou son kit.",
-                " "
+                ChatColor.ITALIC + "/iu me" + ChatColor.GRAY + " pour connaître son équipe et/ou son kit."
         );
     }
 }

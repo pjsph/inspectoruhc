@@ -71,9 +71,6 @@ public class Timer extends BukkitRunnable {
                         if(player != null && player.isOnline())
                             player.sendMessage(ChatColor.AQUA + "Les équipes ont été annoncées.");
                     }
-
-                    if(plugin.getGameManager().getOnlineAlivePlayers().size() == 1)
-                        plugin.getGameManager().finish(0);
                 }
             }
 

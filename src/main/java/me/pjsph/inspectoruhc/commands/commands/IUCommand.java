@@ -5,6 +5,7 @@ import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
 import me.pjsph.inspectoruhc.commands.commands.iu.MeCommand;
+import me.pjsph.inspectoruhc.commands.commands.iu.SpectatorsCommand;
 import me.pjsph.inspectoruhc.commands.commands.iu.StartCommand;
 import org.bukkit.command.CommandSender;
 
@@ -19,6 +20,7 @@ public class IUCommand extends AbstractCommand {
 
         registerSubCommand(new StartCommand(plugin));
         registerSubCommand(new MeCommand(plugin));
+        registerSubCommand(new SpectatorsCommand(plugin));
     }
 
     @Override

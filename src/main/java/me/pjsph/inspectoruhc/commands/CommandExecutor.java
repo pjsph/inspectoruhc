@@ -68,9 +68,8 @@ public class CommandExecutor implements TabExecutor {
     }
 
     public void displayHelp(CommandSender sender, List<String> help, boolean isAnError) {
-        sender.sendMessage(ChatColor.YELLOW + "--------------------");
-
         if(!isAnError) {
+            sender.sendMessage(ChatColor.YELLOW + "--------------------");
             sender.sendMessage(ChatColor.YELLOW + plugin.getDescription().getDescription() + " - version " + plugin.getDescription().getVersion());
             sender.sendMessage("Utilisation : " + ChatColor.ITALIC + "/iu <command>");
             sender.sendMessage(" ");

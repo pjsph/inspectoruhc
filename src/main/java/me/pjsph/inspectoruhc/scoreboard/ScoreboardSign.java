@@ -56,10 +56,10 @@ public class ScoreboardSign {
      * @author pjsph
      */
     public void update() {
-        this.setLine(0, "");
-        this.setLine(1, plugin.getGameManager().getAlivePlayers().size() + " §7Joueurs");
-        this.setLine(2, Team.getTeams().size() + " §7Equipes");
-        this.setLine(3, " ");
+        if(this.getLine(0) != "") this.setLine(0, "");
+        if(this.getLine(0) != plugin.getGameManager().getAlivePlayers().size() + " §7Joueurs") this.setLine(1, plugin.getGameManager().getAlivePlayers().size() + " §7Joueurs");
+        if(this.getLine(0) != Team.getTeams().size() + " §7Equipes") this.setLine(2, Team.getTeams().size() + " §7Equipes");
+        if(this.getLine(0) != " ") this.setLine(3, " ");
 
         /* Timer part */
         if(plugin.getGameManager().hasStarted()) {

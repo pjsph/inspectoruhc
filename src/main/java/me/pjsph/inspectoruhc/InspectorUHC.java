@@ -3,6 +3,7 @@ package me.pjsph.inspectoruhc;
 import me.pjsph.inspectoruhc.borders.BorderManager;
 import me.pjsph.inspectoruhc.commands.CommandExecutor;
 import me.pjsph.inspectoruhc.game.GameManager;
+import me.pjsph.inspectoruhc.listeners.BeforeGameListener;
 import me.pjsph.inspectoruhc.listeners.GameListener;
 import me.pjsph.inspectoruhc.misc.RulesManager;
 import me.pjsph.inspectoruhc.spectators.SpectatorsManager;
@@ -39,6 +40,7 @@ public class InspectorUHC extends JavaPlugin {
             getCommand(commandName).setTabCompleter(executor);
         }
 
+        getServer().getPluginManager().registerEvents(new BeforeGameListener(), this);
         getServer().getPluginManager().registerEvents(new GameListener(this), this);
     }
 
