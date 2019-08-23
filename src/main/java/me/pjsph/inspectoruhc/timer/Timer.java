@@ -2,6 +2,7 @@ package me.pjsph.inspectoruhc.timer;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.kits.Kit;
+import me.pjsph.inspectoruhc.scoreboard.ScoreboardSign;
 import me.pjsph.inspectoruhc.teams.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -97,6 +98,6 @@ public class Timer extends BukkitRunnable {
             }
         }
 
-        plugin.getScoreboardManager().matchInfo();
+        ScoreboardSign.getScoreboards().forEach(((player, scoreboardSign) -> scoreboardSign.update()));
     }
 }
