@@ -5,9 +5,9 @@ import me.pjsph.inspectoruhc.events.GameStartsEvent;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
+import me.pjsph.inspectoruhc.tools.Titles;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -91,7 +91,6 @@ public class GameManager {
             setStarted(true);
 
             /* Start messages */
-
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "La partie démarre...");
 
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "3");
@@ -131,6 +130,9 @@ public class GameManager {
 
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20, 255));
                     }
+
+                    /* Call the GameStartsEvent */
+                    Bukkit.getPluginManager().callEvent(new GameStartsEvent());
                 }
             }, 60L);
 
@@ -138,8 +140,6 @@ public class GameManager {
                 activateDamages();
                 plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
             }, 660L);
-
-            Bukkit.getPluginManager().callEvent(new GameStartsEvent());
         }
     }
 
@@ -173,7 +173,12 @@ public class GameManager {
 
         Bukkit.broadcastMessage("§2Bravo à §e" + winners.toString() + " §2(" + winnerTeam.getColor() + winnerTeam.getName() + "§2) pour leur victoire !");
 
-        /* TODO title */
+        /* Broadcast title */
+        Titles.broadcastTitle(
+                5, 142, 21,
+                winnerTeam.getColor() + winnerTeam.getName(),
+                "§aCette équipe remporte la partie !"
+                );
     }
 
     private void startRandomizeRoles(Player p) {
@@ -282,12 +287,10 @@ public class GameManager {
 
     public void addDead(Player player) {
         alivePlayers.remove(player.getUniqueId());
-        /* TODO update cache */
     }
 
     public void addDead(UUID player) {
         alivePlayers.remove(player);
-        /* TODO update cache */
     }
 
     public boolean isPlayerDead(Player player) {

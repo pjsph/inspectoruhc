@@ -7,6 +7,7 @@ import me.pjsph.inspectoruhc.events.TeamDeathEvent;
 import me.pjsph.inspectoruhc.scoreboard.ScoreboardSign;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.tools.IUSound;
+import me.pjsph.inspectoruhc.tools.Titles;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Sound;
@@ -74,8 +75,6 @@ public class GameListener implements Listener {
                 /* Call the TeamDeathEvent */
                 plugin.getServer().getPluginManager().callEvent(new TeamDeathEvent(team));
 
-                plugin.getLogger().log(Level.INFO, "isALive: " + isAliveTeam);
-
                 /* Display the team death message after the player's death one */
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     Bukkit.broadcastMessage("§8§l>> §6L'équipe des " + team.getColor() + team.getName() + " §6est éliminée !");
@@ -83,7 +82,7 @@ public class GameListener implements Listener {
             }
 
             /* Display a death message in the console */
-            plugin.getServer().getConsoleSender().sendMessage("§6-- Mort de " + ev.getEntity().getDisplayName() + "§6(" + ev.getDeathMessage() + " §6)--");
+            plugin.getServer().getConsoleSender().sendMessage("§6-- Mort de " + ev.getEntity().getDisplayName() + " §6(" + ev.getDeathMessage() + "§6) --");
 
             /* Display the player's death message */
             String deathMsg = "§8§l>> §6" + ev.getDeathMessage();
@@ -117,10 +116,13 @@ public class GameListener implements Listener {
         scoreboardSign.update();
         ScoreboardSign.getScoreboards().put(ev.getPlayer(), scoreboardSign);
 
+        /* Initialization of the spectator mode */
         if(plugin.getGameManager().hasStarted() && !plugin.getGameManager().getAlivePlayers().contains(ev.getPlayer())) {
             plugin.getSpectatorsManager().setSpectating(ev.getPlayer(), true);
+            plugin.getGameManager().addStartupSpectator(ev.getPlayer());
         }
 
+        /* Update gamemode */
         if(!plugin.getGameManager().hasStarted()) {
             ev.getPlayer().getInventory().clear();
 
@@ -143,7 +145,11 @@ public class GameListener implements Listener {
         /* Broadcast start sound */
         new IUSound(Sound.LEVEL_UP).broadcast();
 
-        /* TODO titles */
+        Titles.broadcastTitle(
+                5, 40, 8,
+                "§2GO!",
+                "§aBonne chance"
+        );
 
         /* Border */
         plugin.getBorderManager().scheduleBorderReduction();
