@@ -38,8 +38,8 @@ public class MeCommand extends AbstractCommand {
                 String teamName = Team.getTeamForPlayer((Player) sender) != null ? Team.getTeamForPlayer((Player) sender).getName() : "";
                 sender.sendMessage("Déjà oublié ? Vous êtes dans l'équipe : " + teamName);
                 if(teamName == "Inspecteurs") {
-                    sender.sendMessage("Votre kit est le suivant : " + Kit.getFromOwner(((Player) sender).getUniqueId()).getName());
-                    sender.sendMessage(Kit.getFromOwner(((Player) sender).getUniqueId()).getDescription());
+                    sender.sendMessage("Votre kit est le suivant : " + Kit.getKit(((Player) sender).getUniqueId()).getName());
+                    sender.sendMessage(Kit.getKit(((Player) sender).getUniqueId()).getDescription());
                 }
             }
         }

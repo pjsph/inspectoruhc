@@ -80,14 +80,14 @@ public class Timer extends BukkitRunnable {
                 if(minutes == -1) {
                     plugin.getGameManager().activateKits();
 
-                    for(String sId : Kit.getKitOwners().keySet()) {
-                        Player player = Bukkit.getPlayer(UUID.fromString(sId));
+                    for(UUID id : Team.INSPECTORS.getPlayersUUID()) {
+                        Player player = Bukkit.getPlayer(id);
 
                         if(player != null && plugin.getGameManager().getOnlineAlivePlayers().contains(player)) {
                             player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
-                            player.sendMessage(ChatColor.DARK_AQUA + "Voici votre kit : " + Kit.getFromOwner(UUID.fromString(sId)).getName() + ".");
+                            player.sendMessage(ChatColor.DARK_AQUA + "Voici votre kit : " + Kit.getKit(id).getName() + ".");
                             player.sendMessage(ChatColor.DARK_AQUA + "Celui-ci vous donne un objet, un effet ou une capacité spéciale :");
-                            player.sendMessage(ChatColor.DARK_AQUA + Kit.getFromOwner(UUID.fromString(sId)).getDescription());
+                            player.sendMessage(ChatColor.DARK_AQUA + Kit.getKit(id).getDescription());
                             player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
                         }
                     }

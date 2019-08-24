@@ -25,9 +25,11 @@ public class Titles {
             packetPlayOutTitleClass = Reflection.getNMSClass("PacketPlayOutTitle");
             iChatBaseComponent = Reflection.getNMSClass("IChatBaseComponent");
 
-            chatSerializerClass = Reflection.getNMSClass("ChatSerializer");
-            if (chatSerializerClass == null)
+            try {
+                chatSerializerClass = Reflection.getNMSClassWithoutCatch("ChatSerializer");
+            } catch(ClassNotFoundException e) {
                 chatSerializerClass = Reflection.getNMSClass("IChatBaseComponent$ChatSerializer");
+            }
 
             enumTitleActionClass = Reflection.getNMSClass("PacketPlayOutTitle$EnumTitleAction");
             if (enumTitleActionClass == null) enumTitleActionClass = Reflection.getNMSClass("EnumTitleAction");

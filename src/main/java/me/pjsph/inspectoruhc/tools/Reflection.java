@@ -33,6 +33,10 @@ public class Reflection {
         }
     }
 
+    public static Class<?> getNMSClassWithoutCatch(String className) throws ClassNotFoundException {
+        return PackageType.MINECRAFT_SERVER.getClass(className);
+    }
+
     public static Class<?> getOBCClass(String className) {
         try {
             return PackageType.CRAFTBUKKIT.getClass(className);

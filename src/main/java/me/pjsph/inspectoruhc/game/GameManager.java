@@ -320,30 +320,19 @@ public class GameManager {
             }
         }
 
-        // Select kits
-        ArrayList<Kit> kits = new ArrayList<>();
+        /* Randomize kits */
+        List<UUID> inspectors = new ArrayList<>(Team.INSPECTORS.getPlayersUUID());
+        List<Kit.KIT_TYPES> listKits = null;
+        for(int i = 0; i < inspectors.size(); i++) {
+            if(listKits == null || listKits.size() == 0) listKits = new ArrayList<>(Arrays.asList(Kit.KIT_TYPES.values()));
 
-        for(Kit.Kits kitEnum : Kit.Kits.values()) {
-            Kit kit = Kit.getFromKits(kitEnum);
+            int randomIndex = random.nextInt(listKits.size());
+            Kit kit = new Kit(listKits.get(randomIndex));
+            kit.addOwner(inspectors.get(i));
+            listKits.remove(randomIndex);
 
-            if(kit != null) {
-                kits.add(kit);
-            }
+            plugin.getServer().getConsoleSender().sendMessage("§b" + Bukkit.getOfflinePlayer(inspectors.get(i)).getName() + " obtient le kit " + kit.getName() + ".");
         }
-
-        for(Player player : Team.INSPECTORS.getOnlinePlayers()) {
-            if(player != null) {
-                UUID uuid = player.getUniqueId();
-
-                Kit kit = kits.get(random.nextInt(kits.size()));
-                if(kit != null) {
-                    kit.setOwner(uuid);
-                    kits.remove(kit);
-                    plugin.getLogger().log(Level.INFO, "[SPOIL] " + player.getName() + " obtient le kit " + kit.getName());
-                }
-            }
-        }
-
     }
 
     public void updateAliveCache() {
