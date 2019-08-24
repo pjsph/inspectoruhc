@@ -1,28 +1,19 @@
-package me.pjsph.inspectoruhc.commands.commands;
+package me.pjsph.inspectoruhc.commands.commands.iu;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
-import me.pjsph.inspectoruhc.commands.commands.iu.MeCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.SpawnsCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.SpectatorsCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.StartCommand;
+import me.pjsph.inspectoruhc.commands.commands.iu.spawns.SpawnsGenerateCommand;
 import org.bukkit.command.CommandSender;
 
 import java.util.List;
 
-@Command(name = "iu")
-public class IUCommand extends AbstractCommand {
-    private InspectorUHC plugin;
+@Command(name = "spawns")
+public class SpawnsCommand extends AbstractCommand {
 
-    public IUCommand(InspectorUHC plugin) {
-        this.plugin = plugin;
-
-        registerSubCommand(new StartCommand(plugin));
-        registerSubCommand(new MeCommand(plugin));
-        registerSubCommand(new SpectatorsCommand(plugin));
-        registerSubCommand(new SpawnsCommand(plugin));
+    public SpawnsCommand(InspectorUHC plugin) {
+        registerSubCommand(new SpawnsGenerateCommand(plugin));
     }
 
     @Override

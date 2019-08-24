@@ -112,6 +112,10 @@ public enum Team {
         return players.contains(id);
     }
 
+    public void clear() {
+        players.clear();
+    }
+
     public static Team getTeamForPlayer(OfflinePlayer player) {
         return getTeams().stream().filter(t -> t.getPlayers().contains(player)).findFirst().orElse(null);
     }

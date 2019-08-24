@@ -6,6 +6,7 @@ import me.pjsph.inspectoruhc.game.GameManager;
 import me.pjsph.inspectoruhc.listeners.BeforeGameListener;
 import me.pjsph.inspectoruhc.listeners.GameListener;
 import me.pjsph.inspectoruhc.misc.RulesManager;
+import me.pjsph.inspectoruhc.spawns.SpawnsManager;
 import me.pjsph.inspectoruhc.spectators.SpectatorsManager;
 import me.pjsph.inspectoruhc.timer.TimerManager;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -18,6 +19,7 @@ public class InspectorUHC extends JavaPlugin {
     private TimerManager timerManager = null;
     private GameManager gameManager = null;
     private BorderManager borderManager = null;
+    private SpawnsManager spawnsManager = null;
     private SpectatorsManager spectatorsManager = null;
     private RulesManager rulesManager = null;
 
@@ -31,6 +33,7 @@ public class InspectorUHC extends JavaPlugin {
         this.gameManager = new GameManager(this);
         this.timerManager = new TimerManager();
         this.borderManager = new BorderManager(this);
+        this.spawnsManager = new SpawnsManager(this);
         this.spectatorsManager = new SpectatorsManager();
         this.rulesManager = new RulesManager();
 
@@ -59,6 +62,10 @@ public class InspectorUHC extends JavaPlugin {
 
     public BorderManager getBorderManager() {
         return borderManager;
+    }
+
+    public SpawnsManager getSpawnsManager() {
+        return spawnsManager;
     }
 
     public SpectatorsManager getSpectatorsManager() {
