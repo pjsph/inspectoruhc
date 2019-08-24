@@ -30,7 +30,7 @@ public class SpawnsGenerateCommand extends AbstractCommand {
         double xCenter = world.getSpawnLocation().getX();
         double zCenter = world.getSpawnLocation().getZ();
 
-        int spawnsCount = p.getServer().getOnlinePlayers().size() - p.getGameManager().getStartupSpectators().size();
+        int spawnsCount = p.getServer().getOnlinePlayers().size() - p.getGameManager().getStartupSpectators().size() - p.getSpawnsManager().getSpawnPoints().size();
 
         try {
             p.getSpawnsManager().generateSpawnPoints(world, spawnsCount, size, distanceBetweenToPoints, xCenter, zCenter);

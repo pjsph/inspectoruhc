@@ -4,7 +4,7 @@ import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
-import me.pjsph.inspectoruhc.commands.commands.iu.spawns.SpawnsGenerateCommand;
+import me.pjsph.inspectoruhc.commands.commands.iu.spawns.*;
 import org.bukkit.command.CommandSender;
 
 import java.util.List;
@@ -13,7 +13,11 @@ import java.util.List;
 public class SpawnsCommand extends AbstractCommand {
 
     public SpawnsCommand(InspectorUHC plugin) {
+        registerSubCommand(new SpawnsAddCommand(plugin));
         registerSubCommand(new SpawnsGenerateCommand(plugin));
+        registerSubCommand(new SpawnsListCommand(plugin));
+        registerSubCommand(new SpawnsRemoveCommand(plugin));
+        registerSubCommand(new SpawnsResetCommand(plugin));
     }
 
     @Override
