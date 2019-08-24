@@ -14,7 +14,12 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerAchievementAwardedEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -103,6 +108,29 @@ public class GameListener implements Listener {
     }
 
     @EventHandler
+    public void onEntityDamage(EntityDamageEvent ev) {
+        if(ev.getEntity() instanceof Player) {
+            if(!plugin.getGameManager().hasStarted() || (plugin.getGameManager().hasStarted() && plugin.getGameManager().isInvincible())) {
+                ev.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onFoodUpdate(FoodLevelChangeEvent ev) {
+        if(!plugin.getGameManager().hasStarted()) {
+            if(ev.getEntity() instanceof Player) {
+                ((Player) ev.getEntity()).setFoodLevel(20);
+                ((Player) ev.getEntity()).setSaturation(20f);
+            }
+
+            ev.setCancelled(true);
+        }
+    }
+
+    /* TODO update MOTD manager */
+
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent ev) {
         if(!plugin.getGameManager().hasStarted()) {
             plugin.getGameManager().initPlayer(ev.getPlayer());
@@ -139,6 +167,29 @@ public class GameListener implements Listener {
             ScoreboardSign.getScoreboards().remove(ev.getPlayer());
         }
     }
+
+    @EventHandler
+    public void onPlayerAchievementAwarded(PlayerAchievementAwardedEvent ev) {
+        if(!plugin.getGameManager().hasStarted()) {
+            ev.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent ev) {
+        if(!plugin.getGameManager().hasStarted() && !ev.getPlayer().isOp()) {
+            ev.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent ev) {
+        if(!plugin.getGameManager().hasStarted() && !ev.getPlayer().isOp()) {
+            ev.setCancelled(true);
+        }
+    }
+
+    /* TODO Episode change event */
 
     @EventHandler
     public void onGameStarts(GameStartsEvent ev) {

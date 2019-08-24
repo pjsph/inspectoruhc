@@ -463,4 +463,8 @@ public class GameManager {
                 .filter(Player::isOnline)
                 .collect(Collectors.toCollection(HashSet::new));
     }
+
+    public boolean isInvincible() {
+        return invincible;
+    }
 }
