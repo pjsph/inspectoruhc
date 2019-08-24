@@ -7,10 +7,9 @@ import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
 import me.pjsph.inspectoruhc.tools.Titles;
 import org.bukkit.*;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -30,6 +29,8 @@ public class GameManager {
     private Map<UUID, Location> deathLocations = new HashMap<>();
 
     private int aliveTeamsCount = 0;
+
+    private Teleporter teleporter = null;
 
     public GameManager(InspectorUHC plugin) {
         this.plugin = plugin;
@@ -54,7 +55,7 @@ public class GameManager {
         }
     }
 
-    public void start(Player player) {
+    public void start(CommandSender sender) {
         if(!hasStarted()) {
 
             /* Initialization of the teams */
@@ -62,7 +63,9 @@ public class GameManager {
             alivePlayers.clear();
             aliveTeamsCount = 0;
 
-            startRandomizeRoles(player);
+            Team.getTeams().forEach(team -> team.clear());
+
+            startRandomizeRoles(sender);
 
             /* Initialization of the players */
 
@@ -75,20 +78,21 @@ public class GameManager {
 
             updateAliveCache();
 
-            /* TODO Teleportation */
+            /* Spawns checks */
+            int spawnNeeded = getAlivePlayers().size();
+
+            if(plugin.getSpawnsManager().getSpawnPoints().size() < spawnNeeded) {
+                if(sender instanceof Player) sender.sendMessage("");
+                sender.sendMessage("§cImpossible de démarrer le jeu: pas assez de points de spawn.");
+                sender.sendMessage("§cUtilisez §o/iu spawns generate §cpour générer les points manquants.");
+
+                aliveTeamsCount = 0;
+                return;
+            }
 
             /* Initialization of the spectator mode */
 
             Bukkit.getOnlinePlayers().forEach(p -> plugin.getSpectatorsManager().setSpectating(p, spectators.contains(p.getUniqueId())));
-
-            /* Initialization of the timer */
-
-            plugin.getTimerManager().setMinutesLeft(20);
-            plugin.getTimerManager().incEpisode();
-            plugin.getTimerManager().setMinutesRolesLeft(5);
-            plugin.getTimerManager().setMinutesKitsLeft(10);
-
-            setStarted(true);
 
             /* Start messages */
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "La partie démarre...");
@@ -108,39 +112,113 @@ public class GameManager {
                 public void run() {
                     plugin.getServer().broadcastMessage(ChatColor.DARK_AQUA + "C'est parti !");
 
-                    new Timer(InspectorUHC.get()).runTaskTimer(InspectorUHC.get(), 20L, 20L);
+                    /* TODO Teleportation */
+                    teleporter = new Teleporter();
 
-                    for(World w : plugin.getServer().getWorlds()) {
-                        w.setDifficulty(Difficulty.HARD);
-                    }
+                    List<Location> spawnPoints = new ArrayList<>(plugin.getSpawnsManager().getSpawnPoints());
+                    Collections.shuffle(spawnPoints);
 
-                    for(String name : plugin.getGameManager().getPlayers()) {
-                        Player player = Bukkit.getPlayer(name);
-                        if(player == null || !player.isOnline()) return;
+                    Queue<Location> unusedTp = new ArrayDeque<>(spawnPoints);
 
-                        player.setGameMode(GameMode.SURVIVAL);
-                        player.setExp(0f);
-                        player.setLevel(0);
-                        player.getInventory().clear();
-                        player.getInventory().setArmorContents(new ItemStack[] { new ItemStack(Material.AIR), new ItemStack(Material.AIR), new ItemStack(Material.AIR), new ItemStack(Material.AIR) });
-                        player.setHealth(20D);
-                        player.setExhaustion(20F);
-                        player.setFoodLevel(20);
-                        player.getActivePotionEffects().clear();
+                    Team.getTeams().stream().filter(team -> !team.isEmpty()).forEach(team -> {
+                        team.getPlayersUUID().forEach(player -> {
+                            final Location playerSpawn = unusedTp.poll();
+                            final Cage cage = new Cage(playerSpawn, true, true);
+                            cage.setCustomMaterial(Material.STAINED_GLASS, (byte) 5);
+                            cage.setInternalHeight(3);
+                            cage.setRadius(5);
 
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20, 255));
-                    }
+                            teleporter.setSpawnForPlayer(player, playerSpawn);
+                            if(cage != null) teleporter.setCageForPlayer(player, cage);
+                        });
+                    });
 
-                    /* Call the GameStartsEvent */
-                    Bukkit.getPluginManager().callEvent(new GameStartsEvent());
+                    teleporter
+                            .whenTeleportationSuccesses(uuid -> {
+                                final Player player = Bukkit.getPlayer(uuid);
+
+                                player.setGameMode(GameMode.SURVIVAL);
+
+                                /* Reset player */
+                                resetPlayer(player);
+
+                                player.getActivePotionEffects().stream().map(PotionEffect::getType).forEach(player::removePotionEffect);
+                            })
+                            .whenTeleportationFails(uuid -> sender.sendMessage("§cLe joueur " + Bukkit.getPlayer(uuid).getName() + " ne peut pas être téléporté !"))
+                            .whenTeleportationEnds(uuids -> {
+                                /* Initialization of the environment */
+                                startEnvironment();
+
+                                /* Initialization of the timer */
+                                plugin.getTimerManager().setMinutesLeft(20);
+                                plugin.getTimerManager().incEpisode();
+                                plugin.getTimerManager().setMinutesRolesLeft(5);
+                                plugin.getTimerManager().setMinutesKitsLeft(10);
+
+                                setStarted(true);
+
+                                /* Schedule damages */
+                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                    activateDamages();
+                                    plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
+                                }, 660L);
+
+                                /* Finalize start */
+                                finalizeStart();
+                            })
+                            .startTeleportationProcess();
                 }
             }, 60L);
-
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                activateDamages();
-                plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
-            }, 660L);
         }
+    }
+
+    private void startEnvironment() {
+        World overworld = Bukkit.getWorlds().stream()
+                .filter(world -> world.getEnvironment() != World.Environment.NETHER && world.getEnvironment() != World.Environment.THE_END)
+                .findFirst().orElse(null);
+
+        if(overworld != null) {
+            overworld.setGameRuleValue("doDaylightCycle", "true");
+            overworld.setTime(6000L);
+            overworld.setStorm(false);
+        }
+
+        for(World world : Bukkit.getWorlds()) {
+            world.setGameRuleValue("keepInventory", "false");
+            world.setGameRuleValue("naturalRegeneration", "false");
+            world.setDifficulty(Difficulty.HARD);
+        }
+    }
+
+    private void finalizeStart() {
+        new Timer(InspectorUHC.get()).runTaskTimer(InspectorUHC.get(), 20L, 20L);
+
+        teleporter.cleanup();
+
+        hasStarted = true;
+
+        updateAliveCache();
+
+        plugin.getServer().getOnlinePlayers().stream()
+                .filter(player -> alivePlayers.contains(player.getUniqueId()))
+                .forEach(player -> {
+                    player.setGameMode(GameMode.SURVIVAL);
+                    resetPlayer(player);
+        });
+
+        plugin.getServer().getPluginManager().callEvent(new GameStartsEvent());
+    }
+
+    private void resetPlayer(Player player) {
+        player.setExp(0f);
+        player.setLevel(0);
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.setHealth(20D);
+        player.setExhaustion(20F);
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        player.getActivePotionEffects().clear();
     }
 
     public void finish() {
@@ -181,7 +259,7 @@ public class GameManager {
                 );
     }
 
-    private void startRandomizeRoles(Player p) {
+    private void startRandomizeRoles(CommandSender p) {
         Random random = new Random();
 
         // Select teams
@@ -189,7 +267,6 @@ public class GameManager {
 
         ArrayList<Player> playersToChoose = new ArrayList<>(Bukkit.getOnlinePlayers().stream().filter(player -> !spectators.contains(player.getUniqueId())).collect(Collectors.toList()));
         ArrayList<Player> chosenPlayers = new ArrayList<>();
-        plugin.getLogger().log(Level.INFO,  "Teams: " + Team.values().length);
 
         int allPlayers = playersToChoose.size();
 
@@ -255,7 +332,7 @@ public class GameManager {
                 if(kit != null) {
                     kit.setOwner(uuid);
                     kits.remove(kit);
-                    plugin.getLogger().log(Level.INFO, ChatColor.AQUA + "[SPOIL] " + player.getName() + " obtient le kit " + kit.getName());
+                    plugin.getLogger().log(Level.INFO, "[SPOIL] " + player.getName() + " obtient le kit " + kit.getName());
                 }
             }
         }
