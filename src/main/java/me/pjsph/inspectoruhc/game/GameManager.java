@@ -94,14 +94,21 @@ public class GameManager {
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "La partie démarre...");
 
             plugin.getServer().broadcastMessage(ChatColor.GREEN + "3");
+
+            Titles.broadcastTitle(2, 16, 2, "§a3", "");
+
             Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
                 public void run() {
                     plugin.getServer().broadcastMessage(ChatColor.YELLOW + "2");
+
+                    Titles.broadcastTitle(2, 16, 2, "§e2", "");
                 }
             }, 20L);
             Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
                 public void run() {
                     plugin.getServer().broadcastMessage(ChatColor.RED + "1");
+
+                    Titles.broadcastTitle(2, 16, 2, "§c1", "");
                 }
             }, 40L);
             Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
