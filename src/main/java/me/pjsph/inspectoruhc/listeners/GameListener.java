@@ -206,7 +206,7 @@ public class GameListener implements Listener {
         plugin.getBorderManager().scheduleBorderReduction();
 
         /* Rules */
-        Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getRulesManager().broadcastRules(), (15 + 3) * 20L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getRulesManager().broadcastRules(), 15 * 20L);
     }
 
     @EventHandler

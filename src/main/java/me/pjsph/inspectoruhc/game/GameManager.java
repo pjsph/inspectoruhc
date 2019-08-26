@@ -168,7 +168,7 @@ public class GameManager {
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                     activateDamages();
                                     plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
-                                }, 660L);
+                                }, 600L);
 
                                 /* Finalize start */
                                 finalizeStart();
