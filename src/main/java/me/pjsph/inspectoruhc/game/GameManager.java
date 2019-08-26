@@ -1,7 +1,10 @@
 package me.pjsph.inspectoruhc.game;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
+import me.pjsph.inspectoruhc.events.EpisodeChangedCause;
+import me.pjsph.inspectoruhc.events.EpisodeChangedEvent;
 import me.pjsph.inspectoruhc.events.GameStartsEvent;
+import me.pjsph.inspectoruhc.events.KitChosenEvent;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
@@ -119,7 +122,7 @@ public class GameManager {
                 public void run() {
                     plugin.getServer().broadcastMessage(ChatColor.DARK_AQUA + "C'est parti !");
 
-                    /* TODO Teleportation */
+                    /* Teleportation process */
                     teleporter = new Teleporter();
 
                     List<Location> spawnPoints = new ArrayList<>(plugin.getSpawnsManager().getSpawnPoints());
@@ -266,6 +269,23 @@ public class GameManager {
                 );
     }
 
+    public void shiftEpisode(String shifter) {
+        plugin.getTimerManager().incEpisode();
+
+        final EpisodeChangedCause cause;
+        if(shifter == null || shifter.equals("")) cause = EpisodeChangedCause.FINISHED;
+        else cause = EpisodeChangedCause.SHIFTED;
+
+        plugin.getTimerManager().setMinutesLeft(19);
+        plugin.getTimerManager().setSecondsLeft(59);
+
+        plugin.getServer().getPluginManager().callEvent(new EpisodeChangedEvent(plugin.getTimerManager().getEpisode(), cause, shifter));
+    }
+
+    public void shiftEpisode() {
+        shiftEpisode("");
+    }
+
     private void startRandomizeRoles(CommandSender p) {
         Random random = new Random();
 
@@ -327,6 +347,10 @@ public class GameManager {
             if(listKits == null || listKits.size() == 0) listKits = new ArrayList<>(Arrays.asList(Kit.KIT_TYPES.values()));
 
             int randomIndex = random.nextInt(listKits.size());
+            while(listKits.get(randomIndex) != Kit.KIT_TYPES.SPY_GLASSES) {
+                randomIndex = random.nextInt(listKits.size());
+            }
+
             Kit kit = new Kit(listKits.get(randomIndex));
             kit.addOwner(inspectors.get(i));
             listKits.remove(randomIndex);
@@ -416,6 +440,8 @@ public class GameManager {
     }
 
     public void activateKits() {
+        Team.INSPECTORS.getPlayersUUID().forEach(id ->
+                plugin.getServer().getPluginManager().callEvent(new KitChosenEvent(id)));
         this.kitsActivated = true;
     }
 

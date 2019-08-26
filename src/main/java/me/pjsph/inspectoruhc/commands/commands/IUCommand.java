@@ -4,10 +4,7 @@ import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
-import me.pjsph.inspectoruhc.commands.commands.iu.MeCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.SpawnsCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.SpectatorsCommand;
-import me.pjsph.inspectoruhc.commands.commands.iu.StartCommand;
+import me.pjsph.inspectoruhc.commands.commands.iu.*;
 import org.bukkit.command.CommandSender;
 
 import java.util.List;
@@ -23,6 +20,7 @@ public class IUCommand extends AbstractCommand {
         registerSubCommand(new MeCommand(plugin));
         registerSubCommand(new SpectatorsCommand(plugin));
         registerSubCommand(new SpawnsCommand(plugin));
+        registerSubCommand(new ShiftCommand(plugin));
     }
 
     @Override

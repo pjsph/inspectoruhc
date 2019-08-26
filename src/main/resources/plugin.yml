@@ -9,6 +9,10 @@ commands:
     description: InspectorUHC base command
     usage: /<ommand> <subcommand>
 
+  spy:
+    description: Spy a player
+    usage: /<command> <subcommand>
+
 permissions:
   iu.*:
     description: Gives access to all /iu commands.
@@ -18,3 +22,7 @@ permissions:
   iu.start:
     description: Alllow to /kill players from the game.
     default: op
+
+  spy:
+    description: Allow a player to /spy
+    default: true

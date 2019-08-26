@@ -1,14 +1,14 @@
 package me.pjsph.inspectoruhc.listeners;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
-import me.pjsph.inspectoruhc.events.GameEndsEvent;
-import me.pjsph.inspectoruhc.events.GameStartsEvent;
-import me.pjsph.inspectoruhc.events.TeamDeathEvent;
+import me.pjsph.inspectoruhc.events.*;
+import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.scoreboard.ScoreboardSign;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.tools.IUSound;
 import me.pjsph.inspectoruhc.tools.Titles;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -27,7 +27,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class GameListener implements Listener {
     private InspectorUHC plugin;
@@ -41,6 +40,14 @@ public class GameListener implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent ev) {
         if(!plugin.getGameManager().hasStarted() || plugin.getGameManager().isPlayerDead(ev.getEntity())) {
+            return;
+        }
+
+        /* If the player has the roughneck kit and it's its first death, his death is treated by the KitsListener class */
+        if(Kit.getKit(ev.getEntity().getUniqueId()) != null &&
+                Kit.getKit(ev.getEntity().getUniqueId()).getKitType() == Kit.KIT_TYPES.ROUGHNECK &&
+                plugin.getGameManager().isKitsActivated() &&
+                KitsListener.canAction(ev.getEntity().getUniqueId())) {
             return;
         }
 
@@ -189,7 +196,96 @@ public class GameListener implements Listener {
         }
     }
 
-    /* TODO Episode change event */
+    @EventHandler
+    public void onEpisodeChange(EpisodeChangedEvent ev) {
+        if(ev.getCause() == EpisodeChangedCause.SHIFTED) {
+            plugin.getServer().broadcastMessage("§6Fin de l'épisode " + String.valueOf(ev.getNewEpisode() - 1) + " (forcée par " + ev.getShifter() + ").");
+        } else {
+            plugin.getServer().broadcastMessage("§6Fin de l'épisode " + String.valueOf(ev.getNewEpisode() - 1) + ".");
+        }
+
+        Titles.broadcastTitle(
+                5, 32, 0,
+                "§6Episode §e" + (ev.getNewEpisode() - 1) + " §7> §7" + ev.getNewEpisode(),
+                ""
+        );
+
+        (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Titles.broadcastTitle(
+                    0, 32, 0,
+                    "§6Episode §7" + (ev.getNewEpisode() - 1) + " §e> §7" + ev.getNewEpisode(),
+                    ""
+            );
+
+            (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+        }, 20L);
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Titles.broadcastTitle(
+                    0, 32, 8,
+                    "§6Episode §7" + (ev.getNewEpisode() - 1) + " §7> §e" + ev.getNewEpisode(),
+                    ""
+            );
+
+            (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                (new IUSound(Sound.FIREWORK_BLAST)).broadcast();
+                (new IUSound(Sound.FIREWORK_LARGE_BLAST)).broadcast();
+            }, 7L);
+
+        }, 2 * 20L);
+
+        if(plugin.getTimerManager().getEpisode() == 2) {
+            String txt = ChatColor.RED + "La bordure rétrécira à partir de 10min à l'épisode 2, et pendant 1h30.";
+            plugin.getServer().broadcastMessage(txt);
+        }
+
+        if(!plugin.getGameManager().isRolesActivated()) {
+            plugin.getGameManager().activateRoles();
+
+            for(Player player : Team.INSPECTORS.getOnlinePlayers()) {
+                player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+                player.sendMessage(ChatColor.DARK_AQUA + "Vous êtes un Inspecteur ! Vous devez démasquer et tuer les " + ChatColor.RED + "Criminels");
+                player.sendMessage(ChatColor.DARK_AQUA + "Attention cependant : ceux-ci connaissent votre identité.");
+                player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+            }
+
+            for(Player player : Team.THIEVES.getOnlinePlayers()) {
+                player.sendMessage(ChatColor.RED + "-------------------------------------------");
+                player.sendMessage(ChatColor.RED + "Vous êtes un Criminel ! Vous devez tuer les " + ChatColor.DARK_AQUA + "Inspecteurs");
+                player.sendMessage(ChatColor.RED + "Vous reconnaitrez un " + ChatColor.DARK_AQUA + "Inspecteur " + ChatColor.RED + "en le voyant.");
+                player.sendMessage(ChatColor.RED + "Vous pouvez activer votre aura de Serial Killer pour perdre votre effet Weakness et le remplacer par Force I.");
+                player.sendMessage(ChatColor.RED + "Attention cependant : les " + ChatColor.DARK_AQUA + "Inspecteurs " + ChatColor.RED + "pourront alors vous tracer.");
+                player.sendMessage(ChatColor.RED + "/f (comme furie) pour activer/désactiver l'aura.");
+                player.sendMessage(ChatColor.RED + "-------------------------------------------");
+            }
+
+            for(String name : plugin.getGameManager().getPlayers()) {
+                Player player = Bukkit.getPlayer(name);
+
+                if(player != null && player.isOnline())
+                    player.sendMessage(ChatColor.AQUA + "Les équipes ont été annoncées.");
+            }
+        }
+
+        if(!plugin.getGameManager().isKitsActivated()) {
+            plugin.getGameManager().activateKits();
+
+            for(UUID id : Team.INSPECTORS.getPlayersUUID()) {
+                Player player = Bukkit.getPlayer(id);
+
+                if(player != null && plugin.getGameManager().getOnlineAlivePlayers().contains(player)) {
+                    player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+                    player.sendMessage(ChatColor.DARK_AQUA + "Voici votre kit : " + Kit.getKit(id).getName() + ".");
+                    player.sendMessage(ChatColor.DARK_AQUA + "Celui-ci vous donne un objet, un effet ou une capacité spéciale :");
+                    player.sendMessage(ChatColor.DARK_AQUA + Kit.getKit(id).getDescription());
+                    player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+                }
+            }
+        }
+    }
 
     @EventHandler
     public void onGameStarts(GameStartsEvent ev) {
