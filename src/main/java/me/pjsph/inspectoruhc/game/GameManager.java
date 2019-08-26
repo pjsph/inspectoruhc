@@ -6,6 +6,7 @@ import me.pjsph.inspectoruhc.events.EpisodeChangedEvent;
 import me.pjsph.inspectoruhc.events.GameStartsEvent;
 import me.pjsph.inspectoruhc.events.KitChosenEvent;
 import me.pjsph.inspectoruhc.kits.Kit;
+import me.pjsph.inspectoruhc.listeners.KitsListener;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
 import me.pjsph.inspectoruhc.tools.Titles;
@@ -13,6 +14,7 @@ import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -356,6 +358,16 @@ public class GameManager {
             listKits.remove(randomIndex);
 
             plugin.getServer().getConsoleSender().sendMessage("§b" + Bukkit.getOfflinePlayer(inspectors.get(i)).getName() + " obtient le kit " + kit.getName() + ".");
+        }
+
+        /* Init thieves action */
+        for(UUID id : Team.THIEVES.getPlayersUUID()){
+            KitsListener.resetThievesAction(id);
+
+            Player player = Bukkit.getPlayer(id);
+            if(player != null) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 0, false, false));
+            }
         }
     }
 

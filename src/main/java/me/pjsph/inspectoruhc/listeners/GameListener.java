@@ -47,7 +47,7 @@ public class GameListener implements Listener {
         if(Kit.getKit(ev.getEntity().getUniqueId()) != null &&
                 Kit.getKit(ev.getEntity().getUniqueId()).getKitType() == Kit.KIT_TYPES.ROUGHNECK &&
                 plugin.getGameManager().isKitsActivated() &&
-                KitsListener.canAction(ev.getEntity().getUniqueId())) {
+                KitsListener.canInspectsAction(ev.getEntity().getUniqueId())) {
             return;
         }
 

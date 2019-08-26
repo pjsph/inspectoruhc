@@ -13,6 +13,10 @@ commands:
     description: Spy a player
     usage: /<command> <subcommand>
 
+  f:
+    description: Enable/disable the serial killer aura
+    usage: /<command> <subcommand>
+
 permissions:
   iu.*:
     description: Gives access to all /iu commands.
@@ -25,4 +29,8 @@ permissions:
 
   spy:
     description: Allow a player to /spy
+    default: true
+
+  f:
+    description: Allow a player to /f
     default: true

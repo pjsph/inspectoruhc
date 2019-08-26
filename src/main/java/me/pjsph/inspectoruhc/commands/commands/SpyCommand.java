@@ -31,12 +31,12 @@ public class SpyCommand extends AbstractCommand {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.ONLY_AS_A_PLAYER, this);
         }
 
-        if(!p.getGameManager().isKitsActivated()) {
+        if(!p.getGameManager().isRolesActivated()) {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.NOT_ALLOWED, this);
         }
 
         Player executor = (Player) sender;
-        if(Kit.getKit(executor.getUniqueId()) == null || Kit.getKit(executor.getUniqueId()).getKitType() != Kit.KIT_TYPES.SPY_GLASSES) {
+        if(Team.getTeamForPlayer(executor) == Team.INSPECTORS && (Kit.getKit(executor.getUniqueId()) == null || Kit.getKit(executor.getUniqueId()).getKitType() != Kit.KIT_TYPES.SPY_GLASSES)) {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.NOT_ALLOWED, this);
         }
 
@@ -66,6 +66,11 @@ public class SpyCommand extends AbstractCommand {
                     list.add(players.getName());
                 }
             }
+
+            if(!(sender instanceof Player)) return list; // Should never happen
+
+            Player player = (Player) sender;
+            if(list.contains(player.getName())) list.remove(player.getName());
 
             return list;
         }

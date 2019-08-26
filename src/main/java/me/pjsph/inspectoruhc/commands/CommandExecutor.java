@@ -2,6 +2,7 @@ package me.pjsph.inspectoruhc.commands;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
+import me.pjsph.inspectoruhc.commands.commands.FCommand;
 import me.pjsph.inspectoruhc.commands.commands.IUCommand;
 import me.pjsph.inspectoruhc.commands.commands.SpyCommand;
 import org.bukkit.ChatColor;
@@ -22,6 +23,7 @@ public class CommandExecutor implements TabExecutor {
 
         registerCommand(new IUCommand(plugin));
         registerCommand(new SpyCommand(plugin));
+        registerCommand(new FCommand(plugin));
     }
 
     private void registerCommand(AbstractCommand command) {
