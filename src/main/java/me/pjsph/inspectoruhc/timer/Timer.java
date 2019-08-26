@@ -28,18 +28,7 @@ public class Timer extends BukkitRunnable {
             minutes = plugin.getTimerManager().decMinutesLeft();
 
             if(minutes == -1) {
-                plugin.getTimerManager().setMinutesLeft(19);
-                plugin.getTimerManager().setSecondsLeft(59);
-                plugin.getTimerManager().incEpisode();
-
-                String txt = "";
-
-                plugin.getServer().broadcastMessage(ChatColor.GOLD + "Episode " + plugin.getTimerManager().getEpisode());
-
-                if(plugin.getTimerManager().getEpisode() == 2) {
-                    txt = ChatColor.RED + "La bordure rétrécira à partir de 10min à l'épisode 2, et pendant 1h30.";
-                    plugin.getServer().broadcastMessage(txt);
-                }
+                plugin.getGameManager().shiftEpisode();
             }
 
             if(!plugin.getGameManager().isRolesActivated()) {
