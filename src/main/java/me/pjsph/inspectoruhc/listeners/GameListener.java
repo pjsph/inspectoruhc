@@ -100,6 +100,8 @@ public class GameListener implements Listener {
             String deathMsg = "§8§l>> §6" + ev.getDeathMessage();
             ev.setDeathMessage(deathMsg);
 
+            plugin.getGameManager().updateAliveCache();
+
             if(plugin.getGameManager().hasStarted() && plugin.getGameManager().getAliveTeamsCount() == 1) {
                 /* Call the GameEndsEvent */
                 plugin.getServer().getPluginManager().callEvent(new GameEndsEvent(plugin.getGameManager().getAliveTeams().size() == 0 ? Team.INSPECTORS : plugin.getGameManager().getAliveTeams().iterator().next()));
@@ -248,14 +250,14 @@ public class GameListener implements Listener {
             for(Player player : Team.INSPECTORS.getOnlinePlayers()) {
                 player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
                 player.sendMessage(ChatColor.DARK_AQUA + "Vous êtes un Inspecteur ! Vous devez démasquer et tuer les " + ChatColor.RED + "Criminels");
-                player.sendMessage(ChatColor.DARK_AQUA + "Attention cependant : ceux-ci connaissent votre identité.");
+                player.sendMessage(ChatColor.DARK_AQUA + "Attention cependant : ceux-ci peuvent connaître votre identité.");
                 player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
             }
 
             for(Player player : Team.THIEVES.getOnlinePlayers()) {
                 player.sendMessage(ChatColor.RED + "-------------------------------------------");
                 player.sendMessage(ChatColor.RED + "Vous êtes un Criminel ! Vous devez tuer les " + ChatColor.DARK_AQUA + "Inspecteurs");
-                player.sendMessage(ChatColor.RED + "Vous reconnaitrez un " + ChatColor.DARK_AQUA + "Inspecteur " + ChatColor.RED + "en le voyant.");
+                player.sendMessage(ChatColor.RED + "Vous pouvez connaître l'identité d'un joueur avec /spy <joueur>");
                 player.sendMessage(ChatColor.RED + "Vous pouvez activer votre aura de Serial Killer pour perdre votre effet Weakness et le remplacer par Force I.");
                 player.sendMessage(ChatColor.RED + "Attention cependant : les " + ChatColor.DARK_AQUA + "Inspecteurs " + ChatColor.RED + "pourront alors vous tracer.");
                 player.sendMessage(ChatColor.RED + "/f (comme furie) pour activer/désactiver l'aura.");

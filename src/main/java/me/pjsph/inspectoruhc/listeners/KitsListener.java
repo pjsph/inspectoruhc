@@ -11,6 +11,8 @@ import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByBlockEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -117,6 +119,9 @@ public class KitsListener implements Listener {
                     return;
                 } else {
 
+                    /* Cancel death */
+                    ev.setCancelled(true);
+
                     /* Give a new inventory */
                     victim.getInventory().clear();
                     victim.getInventory().setArmorContents(new ItemStack[]{new ItemStack(Material.IRON_HELMET), new ItemStack(Material.IRON_CHESTPLATE), new ItemStack(Material.IRON_LEGGINGS), new ItemStack(Material.IRON_BOOTS)});
@@ -124,6 +129,9 @@ public class KitsListener implements Listener {
                     victim.getInventory().setItem(1, new ItemStack(Material.COOKED_BEEF, 32));
                     victim.getInventory().setItem(2, new ItemStack(Material.IRON_PICKAXE));
                     victim.getInventory().setItem(17, new ItemStack(Material.GOLD_INGOT, 24));
+
+                    /* Give Resistance effect to the player */
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 30 * 20, 4, false, false));
 
                     /* Teleport away the player */
                     plugin.getSpawnsManager().reset();
@@ -146,14 +154,19 @@ public class KitsListener implements Listener {
 
                         teleporter.teleportPlayer(victim.getUniqueId());
 
-                        inspectsAction.put(victim.getUniqueId(), false);
+                        /* Used to prevent PlayerDeathEvent to be called because inspectsAction is set to false here, before PlayerDeathEvent's firing */
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            inspectsAction.put(victim.getUniqueId(), false);
+
+                            /* Heal the player as well 'cause he keeps damages (why?) */
+                            victim.setHealth(20d);
+                            victim.setFoodLevel(20);
+                            victim.setSaturation(20f);
+                        }, 5L);
                     } catch(Exception e) {
                         victim.sendMessage("§cUne erreur s'est produite : impossible de vous ressusciter.");
                         return;
                     }
-
-                    /* Cancel death */
-                    ev.setCancelled(true);
                 }
             }
         }
@@ -274,6 +287,9 @@ public class KitsListener implements Listener {
     }
 
     public static void resetThievesAction(UUID uuid) {
+        Player pl = Bukkit.getPlayer(uuid);
+
+        if(pl != null && pl.isOnline()) pl.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 0, false, false));
         thievesAction.put(uuid, 2);
         thievesAura.put(uuid, false);
     }

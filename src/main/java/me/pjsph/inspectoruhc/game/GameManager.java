@@ -349,9 +349,9 @@ public class GameManager {
             if(listKits == null || listKits.size() == 0) listKits = new ArrayList<>(Arrays.asList(Kit.KIT_TYPES.values()));
 
             int randomIndex = random.nextInt(listKits.size());
-            // while(listKits.get(randomIndex) != Kit.KIT_TYPES.SPY_GLASSES) {
-                // randomIndex = random.nextInt(listKits.size());
-            // }
+            while(listKits.get(randomIndex) != Kit.KIT_TYPES.ROUGHNECK) {
+                randomIndex = random.nextInt(listKits.size());
+            }
 
             Kit kit = new Kit(listKits.get(randomIndex));
             kit.addOwner(inspectors.get(i));
