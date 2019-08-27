@@ -1,5 +1,5 @@
 name: InspectorUHC
-version: 1.0-SNAPSHOT
+version: 1.0
 description: An original UHC plugin.
 main: me.pjsph.inspectoruhc.InspectorUHC
 author: pjsph
