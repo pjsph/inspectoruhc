@@ -73,9 +73,8 @@ public class CommandExecutor implements TabExecutor {
 
     public void displayHelp(CommandSender sender, List<String> help, boolean isAnError) {
         if(!isAnError) {
-            sender.sendMessage(ChatColor.YELLOW + "--------------------");
+            sender.sendMessage(" ");
             sender.sendMessage(ChatColor.YELLOW + plugin.getDescription().getDescription() + " - version " + plugin.getDescription().getVersion());
-            sender.sendMessage("Utilisation : " + ChatColor.ITALIC + "/iu <command>");
             sender.sendMessage(" ");
         }
 
@@ -87,13 +86,10 @@ public class CommandExecutor implements TabExecutor {
             }
         }
 
-        sender.sendMessage(ChatColor.YELLOW + "--------------------");
+        if(!isAnError) sender.sendMessage(ChatColor.YELLOW + "----------------------------");
 
-        if(isAnError) {
+        if(isAnError)
             sender.sendMessage(ChatColor.RED + "La commande executée n'existe pas.");
-            sender.sendMessage(ChatColor.RED + "L'aide a été affichée ci-dessus.");
-            sender.sendMessage(ChatColor.YELLOW + "--------------------");
-        }
     }
 
     @Override

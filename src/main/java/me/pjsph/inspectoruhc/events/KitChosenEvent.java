@@ -1,20 +1,17 @@
 package me.pjsph.inspectoruhc.events;
 
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-import java.util.UUID;
+import lombok.Getter;
 
 public class KitChosenEvent extends Event {
 
-    private UUID uuid;
+    @Getter private IUPlayer player;
 
-    public KitChosenEvent(UUID playerUUID) {
-        this.uuid = playerUUID;
-    }
-
-    public UUID getPlayerUUID() {
-        return uuid;
+    public KitChosenEvent(IUPlayer player) {
+        this.player = player;
     }
 
     private static HandlerList handlers = new HandlerList();

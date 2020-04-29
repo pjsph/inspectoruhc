@@ -1,5 +1,6 @@
 package me.pjsph.inspectoruhc.kits;
 
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import org.bukkit.ChatColor;
 
 import java.util.*;
@@ -8,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class Kit {
 
-    private static HashMap<UUID, Kit> kitOwners = new HashMap<>();
+    private static HashMap<IUPlayer, Kit> kitOwners = new HashMap<>();
 
     private String name;
     private String description;
@@ -24,26 +25,11 @@ public class Kit {
         this.kitType = kitType;
     }
 
-    public void addOwner(UUID owner) {
+    public void addOwner(IUPlayer owner) {
         if(kitOwners.containsKey(owner))
             kitOwners.remove(owner);
 
         kitOwners.put(owner, this);
-    }
-
-    public void removeOwner() {
-        UUID uuid = kitOwners.keySet().stream().filter(id -> kitOwners.get(id) == this).findFirst().orElse(null);
-
-        if(uuid != null) {
-            if(kitOwners.containsKey(uuid))
-                kitOwners.remove(uuid);
-        }
-    }
-
-    public UUID getOwner() {
-        UUID uuid = kitOwners.entrySet().stream().filter(entry -> entry.getValue() == this).map(Map.Entry::getKey).findFirst().orElse(null);
-
-        return uuid;
     }
 
     public String getName() {
@@ -58,14 +44,14 @@ public class Kit {
         return kitType;
     }
 
-    public static List<UUID> getOwners(KIT_TYPES kitType) {
+    public static List<IUPlayer> getOwners(KIT_TYPES kitType) {
         return kitOwners.entrySet().stream()
                 .filter(e -> e.getValue().getKitType() == kitType)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
     }
 
-    public static Kit getKit(UUID owner) {
+    public static Kit getKit(IUPlayer owner) {
         if(kitOwners.get(owner) == null) return null;
 
         return kitOwners.get(owner);
@@ -79,22 +65,22 @@ public class Kit {
         /**
          * Allow the player (Inspector) to know the team of one player.
          */
-        SPY_GLASSES("Lunettes d'espion", "Permet d'espionner un joueur afin de connaître son équipe (/spy <player>)."),
+        SPY_GLASSES("Lunettes d'espion", "§3Vous pouvez espionner un joueur pour connaître son identité (/spy <player>)."),
 
         /**
          * Give Speed effect to the player so he can move easier than others.
          */
-        AGILITY("Agilité", "Permet d'obtenir un effet de Speed."),
+        AGILITY("Agilité", "§3Vous obtenez un effet de Speed."),
 
         /**
          * Give to the player a Thief's position.
          */
-        UNDERSENSE("Sixième sens", "Permet d'obtenir la position des " + ChatColor.RED + "Criminels §3à moins de cent blocs de vous, à chaque épisode."),
+        UNDERSENSE("Sixième sens", "§3Vous obtenez la position des §cCriminels §3à moins de cent blocs de vous, à chaque épisode."),
 
         /**
          * Allow the player to respawn 1 time when he dies.
          */
-        ROUGHNECK("Dur à cuire", "Permet de réapparaitre lors de votre première mort.");
+        ROUGHNECK("Dur à cuire", "§3Vous réapparaitrez lors de votre première mort.");
 
         private String name;
         private String description;

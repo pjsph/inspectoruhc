@@ -1,8 +1,9 @@
 name: InspectorUHC
-version: 1.0
+version: 1.0-SNAPSHOT
 description: An original UHC plugin.
 main: me.pjsph.inspectoruhc.InspectorUHC
 author: pjsph
+depend: [ProtocolLib]
 
 commands:
   iu:
@@ -20,17 +21,14 @@ commands:
 permissions:
   iu.*:
     description: Gives access to all /iu commands.
+    default: op
     children:
       iu.start: true
 
-  iu.start:
-    description: Alllow to /kill players from the game.
-    default: op
-
   spy:
-    description: Allow a player to /spy
+    description: Allows a player to /spy
     default: true
 
   f:
-    description: Allow a player to /f
+    description: Allows a player to /f
     default: true

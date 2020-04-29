@@ -6,6 +6,7 @@ import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
 import org.bukkit.command.CommandSender;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "reset")
@@ -30,6 +31,6 @@ public class SpawnsResetCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns reset §7pour supprimer tous les points de spawn.");
     }
 }

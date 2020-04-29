@@ -1,5 +1,7 @@
 package me.pjsph.inspectoruhc.teams;
 
+import me.pjsph.inspectoruhc.game.IUPlayer;
+import net.minecraft.server.v1_8_R3.IUpdatePlayerListBox;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -18,7 +20,7 @@ public enum Team {
     private String name;
     private ChatColor color;
 
-    private HashSet<UUID> players = new HashSet<>();
+    private HashSet<IUPlayer> players = new HashSet<>();
 
     Team(String name, ChatColor color) {
         this.name = name;
@@ -33,47 +35,16 @@ public enum Team {
         return color;
     }
 
-    public Set<OfflinePlayer> getPlayers() {
-        final Set<OfflinePlayer> playersList = new HashSet<>();
-
-        for(UUID id : players) {
-            final Player player = Bukkit.getPlayer(id);
-            if(player != null)
-                playersList.add(player);
-
-            else
-                playersList.add(Bukkit.getOfflinePlayer(id));
-        }
-
-        return playersList;
+    public Set<IUPlayer> getPlayers() {
+        return players;
     }
 
-    public Set<Player> getOnlinePlayers() {
-        HashSet<Player> playersList = new HashSet<>();
+    public Set<IUPlayer> getOnlinePlayers() {
+        HashSet<IUPlayer> playersList = new HashSet<>();
 
-        for(UUID id : players) {
-            Player player = Bukkit.getPlayer(id);
-            if(player != null && player.isOnline()) {
-                playersList.add(player);
-            }
-        }
-
-        return playersList;
-    }
-
-    public Set<UUID> getPlayersUUID() {
-        return Collections.unmodifiableSet(players);
-    }
-
-    public Set<UUID> getOnlinePlayersUUID() {
-        HashSet<UUID> playersList = new HashSet<>();
-
-        for(UUID id : players) {
-            Player player = Bukkit.getPlayer(id);
-            if(player != null && player.isOnline()) {
-                playersList.add(id);
-            }
-        }
+        for(IUPlayer iup : players)
+            if(iup.isOnline())
+                playersList.add(iup);
 
         return playersList;
     }
@@ -86,41 +57,35 @@ public enum Team {
         return getSize() == 0;
     }
 
-    public void addPlayer(OfflinePlayer player) {
+    public void addPlayer(IUPlayer player) {
         Validate.notNull(player, "The player cannot be null.");
 
         Team.removePlayerFromTeam(player);
 
-        players.add(player.getUniqueId());
+        players.add(player);
     }
 
-    public void removePlayer(OfflinePlayer player) {
+    public void removePlayer(IUPlayer player) {
         Validate.notNull(player, "The player cannot be null.");
 
-        players.remove(player.getUniqueId());
+        players.remove(player);
     }
 
-    public boolean containsPlayer(Player player) {
+    public boolean containsPlayer(IUPlayer player) {
         Validate.notNull(player, "The player cannot be null.");
 
-        return players.contains(player.getUniqueId());
-    }
-
-    public boolean containsPlayer(UUID id) {
-        Validate.notNull(id, "The player cannot be null.");
-
-        return players.contains(id);
+        return players.contains(player);
     }
 
     public void clear() {
         players.clear();
     }
 
-    public static Team getTeamForPlayer(OfflinePlayer player) {
+    public static Team getTeamForPlayer(IUPlayer player) {
         return getTeams().stream().filter(t -> t.getPlayers().contains(player)).findFirst().orElse(null);
     }
 
-    public static boolean inSameTeam(Player player1, Player player2) {
+    public static boolean inSameTeam(IUPlayer player1, IUPlayer player2) {
         return (getTeamForPlayer(player1).equals(getTeamForPlayer(player2)));
     }
 
@@ -128,11 +93,10 @@ public enum Team {
         return Stream.of(values()).collect(Collectors.toSet());
     }
 
-    public static void removePlayerFromTeam(OfflinePlayer player) {
-        Team team = Arrays.stream(values()).filter(t -> t.containsPlayer(player.getUniqueId())).findFirst().orElse(null);
+    public static void removePlayerFromTeam(IUPlayer player) {
+        Team team = Arrays.stream(values()).filter(t -> t.containsPlayer(player)).findFirst().orElse(null);
 
-        if(team != null) {
+        if(team != null)
             team.removePlayer(player);
-        }
     }
 }

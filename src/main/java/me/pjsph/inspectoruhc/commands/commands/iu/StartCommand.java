@@ -37,8 +37,6 @@ public class StartCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return Arrays.asList(ChatColor.YELLOW + "--- Jeu ---",
-                    ChatColor.ITALIC + "/iu start"
-        );
+        return Arrays.asList("§e/iu start §7pour démarrer la partie.");
     }
 }

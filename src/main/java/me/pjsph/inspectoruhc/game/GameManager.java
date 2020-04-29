@@ -7,57 +7,113 @@ import me.pjsph.inspectoruhc.events.GameStartsEvent;
 import me.pjsph.inspectoruhc.events.KitChosenEvent;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.listeners.KitsListener;
+import me.pjsph.inspectoruhc.misc.chat.IUChat;
+import me.pjsph.inspectoruhc.task.FireworksOnWinnersTask;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.Timer;
+import me.pjsph.inspectoruhc.tools.IUSound;
 import me.pjsph.inspectoruhc.tools.Titles;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
+
+import lombok.Getter;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
-import java.util.logging.Level;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class GameManager {
-    private InspectorUHC plugin;
+    private final InspectorUHC plugin;
 
     private boolean hasStarted = false;
     private boolean rolesActivated = false;
     private boolean kitsActivated = false;
     private boolean invincible = true;
+    @Getter private boolean pvpActivated = false;
 
-    private Set<String> players = new HashSet<>();
-    private Set<UUID> alivePlayers = new HashSet<>();
-    private Set<UUID> spectators = new HashSet<>();
-    private Map<UUID, Location> deathLocations = new HashMap<>();
+    @Getter private Set<IUPlayer> players = new HashSet<>();
+    private Set<IUPlayer> alivePlayers = new HashSet<>();
+    private Set<IUPlayer> spectators = new HashSet<>();
+    @Getter private Map<IUPlayer, Location> deathLocations = new HashMap<>();
 
     private int aliveTeamsCount = 0;
 
     private Teleporter teleporter = null;
 
+    @Getter private IUChat spectatorChat = new IUChat((sender, message) -> {
+        return "§7"+sender.getName()+" §6» §f"+message;
+    });
+    @Getter private IUChat commonChat = new IUChat((sender, message) -> {
+        return "§e"+sender.getName()+" §6» §f"+message;
+    });
+
     public GameManager(InspectorUHC plugin) {
         this.plugin = plugin;
     }
 
-    public void initPlayer(final Player player) {
-        Location loc = player.getWorld().getSpawnLocation().add(0.5, 0.5, 0.5);
-        player.teleport(loc);
+    public void sendActionBarMessage(String msg) {
+        for(IUPlayer iup : getPlayers())
+            iup.sendActionBarMessage(msg);
+    }
 
-        player.setFoodLevel(20);
-        player.setSaturation(20f);
-        player.setHealth(20d);
+    public void broadcastMessage(String msg) {
+        for(IUPlayer iup : getPlayers())
+            iup.sendMessage(msg);
+    }
 
-        plugin.getSpectatorsManager().setSpectating(player, false);
+    public void join(IUPlayer iup) {
+        Player player = iup.getPlayer();
 
-        player.removeAchievement(Achievement.OPEN_INVENTORY);
-
-        if(player.isOp()) {
-            player.setGameMode(GameMode.CREATIVE);
-        } else {
-            player.setGameMode(GameMode.ADVENTURE);
+        if(spectators.contains(iup)) {
+            iup.joinChat(spectatorChat);
+            return;
         }
+
+        if(!hasStarted) {
+            Location loc = player.getWorld().getSpawnLocation().add(0.5, 0.5, 0.5);
+            player.teleport(loc);
+
+            player.setFoodLevel(20);
+            player.setSaturation(20f);
+            player.setHealth(20d);
+
+            plugin.getSpectatorsManager().setSpectating(player, false);
+
+            player.removeAchievement(Achievement.OPEN_INVENTORY);
+
+            if(player.isOp()) {
+                player.setGameMode(GameMode.CREATIVE);
+            } else {
+                player.setGameMode(GameMode.ADVENTURE);
+            }
+
+            plugin.getRulesManager().displayRulesTo(player);
+        }
+
+        if(iup.getPlayer().isOp())
+            iup.joinChat(commonChat, new IUChat.IUChatCallback() {
+                @Override
+                public String receive(IUPlayer sender, String message) {
+                    return "§e"+sender.getName()+" §c§l» §f"+message;
+                }
+                @Override
+                public String send(IUPlayer sender, String message) {
+                    return "§d"+sender.getName()+" §c§l» §f"+message;
+                }
+            });
+        else
+            iup.joinChat(commonChat);
+    }
+
+    public void leave(IUPlayer iup) {
+        // TODO tester si ca marche
+        iup.leaveChat();
+        if(!alivePlayers.contains(iup))
+            IUPlayer.removePlayer(iup.getPlayer().getPlayer());
+        iup.remove();
     }
 
     public void start(CommandSender sender) {
@@ -70,15 +126,18 @@ public class GameManager {
 
             Team.getTeams().forEach(team -> team.clear());
 
-            startRandomizeRoles(sender);
+            Bukkit.getOnlinePlayers().stream()
+                    .filter(p -> !spectators.contains(p))
+                    .forEach(p -> players.add(IUPlayer.thePlayer(p)));
+
+            startRandomizeRoles();
 
             /* Initialization of the players */
 
             Team.getTeams().forEach(
                             team -> team.getPlayers().stream()
-                                        .map(OfflinePlayer::getUniqueId)
-                                        .filter(id -> !spectators.contains(id))
-                                        .forEach(id -> alivePlayers.add(id))
+                                        .filter(iup -> !spectators.contains(iup))
+                                        .forEach(iup -> alivePlayers.add(iup))
             );
 
             updateAliveCache();
@@ -95,92 +154,99 @@ public class GameManager {
                 return;
             }
 
-            /* Initialization of the spectator mode */
+            /* MOTD */
+            plugin.getMOTDManager().updateMOTDDuringStart();
 
-            Bukkit.getOnlinePlayers().forEach(p -> plugin.getSpectatorsManager().setSpectating(p, spectators.contains(p.getUniqueId())));
+            /* Initialization of the spectator mode */
+            Bukkit.getOnlinePlayers().forEach(p -> plugin.getSpectatorsManager().setSpectating(p, spectators.contains(IUPlayer.thePlayer(p))));
 
             /* Start messages */
-            plugin.getServer().broadcastMessage(ChatColor.GREEN + "La partie démarre...");
-
-            plugin.getServer().broadcastMessage(ChatColor.GREEN + "3");
-
-            Titles.broadcastTitle(2, 16, 2, "§a3", "");
-
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            broadcastMessage(ChatColor.GREEN + "La partie démarre...");
+            new BukkitRunnable() {
+                int secondsLeft = 3;
+                @Override
                 public void run() {
-                    plugin.getServer().broadcastMessage(ChatColor.YELLOW + "2");
+                    if(secondsLeft == 0) {
+                        plugin.getServer().broadcastMessage(ChatColor.DARK_AQUA + "C'est parti !");
 
-                    Titles.broadcastTitle(2, 16, 2, "§e2", "");
-                }
-            }, 20L);
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                public void run() {
-                    plugin.getServer().broadcastMessage(ChatColor.RED + "1");
+                        /* Teleportation process */
+                        teleporter = new Teleporter();
 
-                    Titles.broadcastTitle(2, 16, 2, "§c1", "");
-                }
-            }, 40L);
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                public void run() {
-                    plugin.getServer().broadcastMessage(ChatColor.DARK_AQUA + "C'est parti !");
+                        List<Location> spawnPoints = new ArrayList<>(plugin.getSpawnsManager().getSpawnPoints());
+                        Collections.shuffle(spawnPoints);
 
-                    /* Teleportation process */
-                    teleporter = new Teleporter();
+                        Queue<Location> unusedTp = new ArrayDeque<>(spawnPoints);
 
-                    List<Location> spawnPoints = new ArrayList<>(plugin.getSpawnsManager().getSpawnPoints());
-                    Collections.shuffle(spawnPoints);
+                        Team.getTeams().stream().filter(team -> !team.isEmpty()).forEach(team -> {
+                            team.getPlayers().forEach(player -> {
+                                final Location playerSpawn = unusedTp.poll();
+                                final Cage cage = new Cage(playerSpawn, true, true);
+                                cage.setCustomMaterial(Material.STAINED_GLASS, (byte) 5);
+                                cage.setInternalHeight(3);
+                                cage.setRadius(5);
 
-                    Queue<Location> unusedTp = new ArrayDeque<>(spawnPoints);
-
-                    Team.getTeams().stream().filter(team -> !team.isEmpty()).forEach(team -> {
-                        team.getPlayersUUID().forEach(player -> {
-                            final Location playerSpawn = unusedTp.poll();
-                            final Cage cage = new Cage(playerSpawn, true, true);
-                            cage.setCustomMaterial(Material.STAINED_GLASS, (byte) 5);
-                            cage.setInternalHeight(3);
-                            cage.setRadius(5);
-
-                            teleporter.setSpawnForPlayer(player, playerSpawn);
-                            if(cage != null) teleporter.setCageForPlayer(player, cage);
+                                teleporter.setSpawnForPlayer(player.getUuid(), playerSpawn);
+                                if(cage != null) teleporter.setCageForPlayer(player.getUuid(), cage);
+                            });
                         });
-                    });
 
-                    teleporter
-                            .whenTeleportationSuccesses(uuid -> {
-                                final Player player = Bukkit.getPlayer(uuid);
+                        teleporter
+                                .whenTeleportationSuccesses(uuid -> {
+                                    final Player player = Bukkit.getPlayer(uuid);
 
-                                player.setGameMode(GameMode.SURVIVAL);
+                                    player.setGameMode(GameMode.SURVIVAL);
 
-                                /* Reset player */
-                                resetPlayer(player);
+                                    /* Reset player */
+                                    resetPlayer(player);
 
-                                player.getActivePotionEffects().stream().map(PotionEffect::getType).forEach(player::removePotionEffect);
-                            })
-                            .whenTeleportationFails(uuid -> sender.sendMessage("§cLe joueur " + Bukkit.getPlayer(uuid).getName() + " ne peut pas être téléporté !"))
-                            .whenTeleportationEnds(uuids -> {
-                                /* Initialization of the environment */
-                                startEnvironment();
+                                    player.getActivePotionEffects().stream().map(PotionEffect::getType).forEach(player::removePotionEffect);
+                                })
+                                .whenTeleportationFails(uuid -> sender.sendMessage("§cLe joueur " + Bukkit.getPlayer(uuid).getName() + " ne peut pas être téléporté !"))
+                                .whenTeleportationEnds(uuids -> {
+                                    /* Initialization of the environment */
+                                    startEnvironment();
 
-                                /* Initialization of the timer */
-                                plugin.getTimerManager().setMinutesLeft(20);
-                                plugin.getTimerManager().incEpisode();
-                                plugin.getTimerManager().setMinutesRolesLeft(5);
-                                plugin.getTimerManager().setMinutesKitsLeft(10);
+                                    /* Initialization of the timer */
+                                    plugin.getTimerManager().setMinutesLeft(20);
+                                    plugin.getTimerManager().incEpisode();
+                                    plugin.getTimerManager().setMinutesRolesLeft(20);
+                                    plugin.getTimerManager().setMinutesKitsLeft(25);
+                                    plugin.getTimerManager().setMinutesBorderLeft(Math.round(plugin.getBorderManager().getBORDER_SHRINKING_STARTS_AFTER() / 60));
+                                    plugin.getTimerManager().setMinutesPvpLeft(30);
 
-                                setStarted(true);
+                                    setStarted(true);
 
-                                /* Schedule damages */
-                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                    activateDamages();
-                                    plugin.getServer().broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
-                                }, 600L);
+                                    /* Schedule damages */
+                                    new BukkitRunnable() {
+                                        @Override
+                                        public void run() {
+                                            activateDamages();
+                                            broadcastMessage(ChatColor.RED + "Attention ! Vous n'êtes plus invincible !");
+                                        }
+                                    }.runTaskLater(plugin, 30L * 20L);
 
-                                /* Finalize start */
-                                finalizeStart();
-                            })
-                            .startTeleportationProcess();
+                                    /* Finalize start */
+                                    finalizeStart();
+                                })
+                                .startTeleportationProcess();
+                        cancel();
+                    }
+                    else if(secondsLeft == 1) {
+                        broadcastMessage(ChatColor.RED + "1");
+                        Titles.broadcastTitle(2, 16, 2, "§c1", "");
+                    }
+                    else if(secondsLeft == 2) {
+                        broadcastMessage(ChatColor.YELLOW + "2");
+                        Titles.broadcastTitle(2, 16, 2, "§e2", "");
+                    }
+                    else if(secondsLeft == 3) {
+                        broadcastMessage(ChatColor.GREEN + "3");
+                        Titles.broadcastTitle(2, 16, 2, "§a3", "");
+                    }
+
+                    secondsLeft--;
                 }
-            }, 60L);
+            }.runTaskTimer(plugin, 0L, 20L);
         }
     }
 
@@ -199,6 +265,7 @@ public class GameManager {
             world.setGameRuleValue("keepInventory", "false");
             world.setGameRuleValue("naturalRegeneration", "false");
             world.setDifficulty(Difficulty.HARD);
+            world.setPVP(false);
         }
     }
 
@@ -212,7 +279,7 @@ public class GameManager {
         updateAliveCache();
 
         plugin.getServer().getOnlinePlayers().stream()
-                .filter(player -> alivePlayers.contains(player.getUniqueId()))
+                .filter(player -> alivePlayers.contains(IUPlayer.thePlayer(player)))
                 .forEach(player -> {
                     player.setGameMode(GameMode.SURVIVAL);
                     resetPlayer(player);
@@ -227,37 +294,37 @@ public class GameManager {
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
         player.setHealth(20D);
-        player.setExhaustion(20F);
+        player.setExhaustion(0F);
         player.setFoodLevel(20);
         player.setSaturation(20);
-        player.getActivePotionEffects().clear();
     }
 
-    public void finish() {
-        if(!hasStarted()) {
-            throw new IllegalStateException("Cannot finish the game: the game is not started.");
+    public void finish(Team winnerTeam, boolean forced) {
+        if(!forced) {
+            if(!hasStarted()) {
+                throw new IllegalStateException("Cannot finish the game: the game is not started.");
+            }
+
+            if(getAliveTeamsCount() != 1) {
+                throw new IllegalStateException("Cannot finish the game: more/less than one team are alive.");
+            }
         }
 
-        if(getAliveTeamsCount() != 1) {
-            throw new IllegalStateException("Cannot finish the game: more/less than one team are alive.");
-        }
-
-        Team winnerTeam = getAliveTeams().size() == 0 ? Team.INSPECTORS : getAliveTeams().iterator().next();
-        Set<OfflinePlayer> listWinners = winnerTeam.getPlayers();
+        Set<IUPlayer> listWinners = winnerTeam.getPlayers();
 
         StringBuilder winners = new StringBuilder();
         int j = 0;
 
-        for(OfflinePlayer winner : listWinners) {
+        for(IUPlayer winner : listWinners) {
             if(j != 0) {
                 if(j == listWinners.size() - 1) {
-                    winners.append(" ").append("and").append(" ");
+                    winners.append(" ").append("et").append(" ");
                 } else {
                     winners.append(", ");
                 }
             }
 
-            winners.append(winner.getName());
+            winners.append(Bukkit.getOfflinePlayer(winner.getUuid()).getName());
             j++;
         }
 
@@ -269,6 +336,12 @@ public class GameManager {
                 winnerTeam.getColor() + winnerTeam.getName(),
                 "§aCette équipe remporte la partie !"
                 );
+
+        new FireworksOnWinnersTask(listWinners).runTaskTimer(plugin, 0L, 15L);
+    }
+
+    public void finish(Team winnerTeam) {
+        finish(winnerTeam, false);
     }
 
     public void shiftEpisode(String shifter) {
@@ -277,6 +350,23 @@ public class GameManager {
         final EpisodeChangedCause cause;
         if(shifter == null || shifter.equals("")) cause = EpisodeChangedCause.FINISHED;
         else cause = EpisodeChangedCause.SHIFTED;
+
+        if(!isRolesActivated() || !isKitsActivated() || !plugin.getBorderManager().isShrinking() || !isPvpActivated()) {
+            final int minutesToEndOfEpisode = plugin.getTimerManager().getMinutesLeft() + 1;
+            plugin.getTimerManager().setMinutesKitsLeft(Math.max(-1, plugin.getTimerManager().getMinutesKitsLeft() - minutesToEndOfEpisode));
+            plugin.getTimerManager().setMinutesRolesLeft(Math.max(-1, plugin.getTimerManager().getMinutesRolesLeft() - minutesToEndOfEpisode));
+            plugin.getTimerManager().setMinutesBorderLeft(Math.max(-1, plugin.getTimerManager().getMinutesBorderLeft() - minutesToEndOfEpisode));
+            plugin.getTimerManager().setMinutesPvpLeft(Math.max(-1, plugin.getTimerManager().getMinutesPvpLeft() - minutesToEndOfEpisode));
+
+            if (!isRolesActivated() && plugin.getTimerManager().getMinutesRolesLeft() == -1)
+                this.activateRoles();
+            if (!isKitsActivated() && plugin.getTimerManager().getMinutesKitsLeft() == -1)
+                this.activateKits();
+            if(!plugin.getBorderManager().isShrinking() && plugin.getTimerManager().getMinutesBorderLeft() == -1)
+                plugin.getBorderManager().startBorderReduction();
+            if(!isPvpActivated() && plugin.getTimerManager().getMinutesPvpLeft() == -1)
+                this.activatePvp();
+        }
 
         plugin.getTimerManager().setMinutesLeft(19);
         plugin.getTimerManager().setSecondsLeft(59);
@@ -288,105 +378,66 @@ public class GameManager {
         shiftEpisode("");
     }
 
-    private void startRandomizeRoles(CommandSender p) {
+    private void startRandomizeRoles() {
         Random random = new Random();
 
-        // Select teams
-        int rand = 0;
+        /* Randomize teams */
+        ArrayList<IUPlayer> playersToChoose = new ArrayList<>(players);
 
-        ArrayList<Player> playersToChoose = new ArrayList<>(Bukkit.getOnlinePlayers().stream().filter(player -> !spectators.contains(player.getUniqueId())).collect(Collectors.toList()));
-        ArrayList<Player> chosenPlayers = new ArrayList<>();
-
-        int allPlayers = playersToChoose.size();
-
-        for(int i = 0; i < allPlayers; i++) {
-            boolean check = false;
-
-            // Choose a team to put a player in
-            while(check == false) {
-                int randTeam = random.nextInt(Team.values().length);
-
-                Team team = Team.values()[randTeam];
-                plugin.getLogger().log(Level.INFO, "Team : " + team.getName() + ", Players : " + team.getPlayers().size());
-                if(!(team.getPlayers().size() >= Math.floorDiv(allPlayers, 2))) {
-                    while(check == false) {
-                        rand = random.nextInt(playersToChoose.size());
-
-                        if(!chosenPlayers.contains(playersToChoose.get(rand))) {
-                            team.addPlayer(Bukkit.getOfflinePlayer(playersToChoose.get(rand).getUniqueId()));
-
-                            plugin.getLogger().log(Level.INFO, "[SPOIL] " + playersToChoose.get(rand).getName() + " rejoint l'equipe " + team.getName());
-
-                            chosenPlayers.add(playersToChoose.get(rand));
-                            playersToChoose.remove(rand);
-
-                            check = true;
-                        }
-                    }
-                } else if(Team.INSPECTORS.getPlayers().size() == Team.THIEVES.getPlayers().size()) {
-                    // Same amount of players in the two teams but a player is still teamless, we had him in the Inspectors team
-                    if(playersToChoose.get(0) != null) {
-                        Team.INSPECTORS.addPlayer(Bukkit.getOfflinePlayer(playersToChoose.get(0).getUniqueId()));
-
-                        plugin.getLogger().log(Level.INFO, "[SPOIL] " + playersToChoose.get(0).getName() + " rejoint l'equipe Inspecteurs");
-
-                        chosenPlayers.add(playersToChoose.get(0));
-                        playersToChoose.remove(0);
-
-                        p.sendMessage(ChatColor.RED + "Le nombre de joueurs connectés n'est pas pair. Les équipes ne seront pas de la même taille.\n" +
-                                "L'équipe des " + ChatColor.DARK_AQUA + "Inspecteurs" + ChatColor.RED + " aura 1 joueur de plus.");
-
-                        check = true;
-                    }
-                }
-            }
+        ArrayList<Team> teams = new ArrayList<>();
+        for(IUPlayer player : playersToChoose) {
+            if(teams.size() == 0) teams.addAll(Arrays.asList(Team.values()));
+            Team team = teams.remove(0);
+            team.addPlayer(player);
+            System.out.println("[SPOIL] "+Bukkit.getOfflinePlayer(player.getUuid()).getName()+" rejoint l'équipe des "+team.getName());
         }
 
         /* Randomize kits */
-        List<UUID> inspectors = new ArrayList<>(Team.INSPECTORS.getPlayersUUID());
+        List<IUPlayer> inspectors = new ArrayList<>(Team.INSPECTORS.getPlayers());
+        // TODO remove
+        new Kit(Kit.KIT_TYPES.ROUGHNECK).addOwner(inspectors.remove(0));
+
         List<Kit.KIT_TYPES> listKits = null;
         for(int i = 0; i < inspectors.size(); i++) {
             if(listKits == null || listKits.size() == 0) listKits = new ArrayList<>(Arrays.asList(Kit.KIT_TYPES.values()));
-
-            int randomIndex = random.nextInt(listKits.size());
-            while(listKits.get(randomIndex) != Kit.KIT_TYPES.ROUGHNECK) {
-                randomIndex = random.nextInt(listKits.size());
-            }
-
-            Kit kit = new Kit(listKits.get(randomIndex));
+            int r = random.nextInt(listKits.size());
+            Kit kit = new Kit(listKits.remove(r));
             kit.addOwner(inspectors.get(i));
-            listKits.remove(randomIndex);
 
-            plugin.getServer().getConsoleSender().sendMessage("§b" + Bukkit.getOfflinePlayer(inspectors.get(i)).getName() + " obtient le kit " + kit.getName() + ".");
-        }
-
-        /* Init thieves action */
-        for(UUID id : Team.THIEVES.getPlayersUUID()){
-            KitsListener.resetThievesAction(id);
-
-            Player player = Bukkit.getPlayer(id);
-            if(player != null) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 0, false, false));
-            }
+            System.out.println("[SPOIL] "+Bukkit.getOfflinePlayer(inspectors.get(i).getUuid()).getName()+" obtient le kit "+kit.getName());
         }
     }
 
     public void updateAliveCache() {
-        Set<Team> aliveTeams = new HashSet<>();
-        for(Team team : Team.values()) {
-            for(UUID pid : team.getPlayersUUID()) {
-                if(!this.isPlayerDead(pid)) aliveTeams.add(team);
-            }
-        }
+        Set<Team> aliveTeams = getAliveTeams();
 
         this.aliveTeamsCount = aliveTeams.size();
+    }
+
+    @Getter private Set<String> deadPlayersToResurrect = new HashSet<>();
+    public boolean resurrect(String name) {
+        Player player = Bukkit.getPlayer(name);
+        if(player != null && player.isOnline()) {
+            IUPlayer iup = IUPlayer.thePlayer(player);
+            if(alivePlayers.contains(iup) || !players.contains(iup))
+                return false;
+            alivePlayers.add(iup);
+            updateAliveCache();
+            plugin.getMOTDManager().updateMOTDDuringGame();
+
+            plugin.getSpectatorsManager().setSpectating(player, false);
+        } else {
+            deadPlayersToResurrect.add(name);
+        }
+
+        return true;
     }
 
     public Set<Team> getAliveTeams() {
         Set<Team> aliveTeams = new HashSet<>();
         for(Team team : Team.values()) {
-            for(UUID pid : team.getPlayersUUID()) {
-                if(!this.isPlayerDead(pid)) aliveTeams.add(team);
+            for(IUPlayer iup : team.getPlayers()) {
+                if(!this.isPlayerDead(iup)) aliveTeams.add(team);
             }
         }
 
@@ -394,41 +445,35 @@ public class GameManager {
     }
 
 
-    public void addDead(Player player) {
-        alivePlayers.remove(player.getUniqueId());
-    }
-
-    public void addDead(UUID player) {
+    public void addDead(IUPlayer player) {
         alivePlayers.remove(player);
+        player.joinChat(spectatorChat);
     }
 
-    public boolean isPlayerDead(Player player) {
-        return !alivePlayers.contains(player.getUniqueId());
-    }
-
-    public boolean isPlayerDead(UUID player) {
+    public boolean isPlayerDead(IUPlayer player) {
         return !alivePlayers.contains(player);
     }
 
-    public void addStartupSpectator(OfflinePlayer player) {
-        spectators.add(player.getUniqueId());
+    public void addStartupSpectator(IUPlayer player) {
+        if(player.isOnline())
+            player.joinChat(spectatorChat);
+        spectators.add(player);
     }
 
-    public void removeStartupSpectator(OfflinePlayer player) {
-        spectators.remove(player.getUniqueId());
+    public void removeStartupSpectator(IUPlayer player) {
+        spectators.remove(player);
     }
 
     public HashSet<String> getStartupSpectators() {
         HashSet<String> spectatorNames = new HashSet<>();
 
-        for(UUID id : spectators) {
-            final OfflinePlayer player = Bukkit.getOfflinePlayer(id);
-            final String playerName = player.getName();
+        for(IUPlayer iup : spectators) {
+            final String playerName = Bukkit.getOfflinePlayer(iup.getUuid()).getName();
 
             if(playerName != null) {
                 spectatorNames.add(playerName);
             } else {
-                spectatorNames.add("Unknown player with UUID " + player.getUniqueId());
+                spectatorNames.add("Unknown player with UUID " + iup.getUuid());
             }
         }
 
@@ -444,6 +489,30 @@ public class GameManager {
     }
 
     public void activateRoles() {
+        /* Init thieves action */
+        for(IUPlayer iup : Team.THIEVES.getPlayers()){
+            KitsListener.resetThievesAction(iup);
+        }
+
+        /* Messages */
+        for(IUPlayer player : Team.INSPECTORS.getOnlinePlayers()) {
+            player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+            player.sendMessage(ChatColor.DARK_AQUA + "Vous êtes un Inspecteur ! Vous devez démasquer et tuer les " + ChatColor.RED + "Criminels");
+            player.sendMessage(ChatColor.DARK_AQUA + "Attention cependant : ceux-ci peuvent connaître votre identité.");
+            player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+        }
+
+        for(IUPlayer player : Team.THIEVES.getOnlinePlayers()) {
+            player.sendMessage(ChatColor.RED + "-------------------------------------------");
+            player.sendMessage(ChatColor.RED + "Vous êtes un Criminel ! Vous devez tuer les " + ChatColor.DARK_AQUA + "Inspecteurs");
+            player.sendMessage(ChatColor.RED + "Vous pouvez connaître l'identité d'un joueur avec /spy <joueur>");
+            player.sendMessage(ChatColor.RED + "Vous pouvez activer votre aura de Serial Killer pour perdre votre effet Weakness et le remplacer par Force I.");
+            player.sendMessage(ChatColor.RED + "Attention cependant : les " + ChatColor.DARK_AQUA + "Inspecteurs " + ChatColor.RED + "pourront alors vous tracer.");
+            player.sendMessage(ChatColor.RED + "/f (comme furie) pour activer/désactiver l'aura.");
+            player.sendMessage(ChatColor.RED + "-------------------------------------------");
+        }
+
+        broadcastMessage("§bLes équipes ont été annoncées.");
         this.rolesActivated = true;
     }
 
@@ -452,9 +521,29 @@ public class GameManager {
     }
 
     public void activateKits() {
-        Team.INSPECTORS.getPlayersUUID().forEach(id ->
-                plugin.getServer().getPluginManager().callEvent(new KitChosenEvent(id)));
+        Team.INSPECTORS.getPlayers().forEach(iup ->
+                plugin.getServer().getPluginManager().callEvent(new KitChosenEvent(iup)));
+
+        /* Messages */
+        for(IUPlayer iup : Team.INSPECTORS.getPlayers()) {
+            if(iup.getPlayer() != null && plugin.getGameManager().getOnlineAlivePlayers().contains(iup)) {
+                iup.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+                iup.sendMessage(ChatColor.DARK_AQUA + "Voici votre kit : " + Kit.getKit(iup).getName() + ".");
+                iup.sendMessage(ChatColor.DARK_AQUA + "Celui-ci vous donne un objet, un effet ou une capacité spéciale :");
+                iup.sendMessage(ChatColor.DARK_AQUA + Kit.getKit(iup).getDescription());
+                iup.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
+            }
+        }
         this.kitsActivated = true;
+    }
+
+    public void activatePvp() {
+        /* Messages */
+        broadcastMessage("§c/!\\ Le PVP est maitenant activé !");
+        (new IUSound(Sound.BAT_DEATH)).broadcast();
+        for(World world : Bukkit.getWorlds())
+            world.setPVP(true);
+        this.pvpActivated = true;
     }
 
     public boolean hasStarted() {
@@ -465,29 +554,21 @@ public class GameManager {
         this.hasStarted = hasStarted;
     }
 
-    public Set<String> getPlayers() {
-        return players;
-    }
-
     public int getAliveTeamsCount() {
         return aliveTeamsCount;
     }
 
-    public void addDeathLocation(Player player, Location location) {
-        deathLocations.put(player.getUniqueId(), location);
+    public void addDeathLocation(IUPlayer player, Location location) {
+        deathLocations.put(player, location);
     }
 
-    public Set<OfflinePlayer> getAlivePlayers() {
-        return alivePlayers.stream()
-                .map(id -> plugin.getServer().getOfflinePlayer(id))
-                .collect(Collectors.toSet());
+    public Set<IUPlayer> getAlivePlayers() {
+        return alivePlayers;
     }
 
-    public HashSet<Player> getOnlineAlivePlayers() {
+    public HashSet<IUPlayer> getOnlineAlivePlayers() {
         return alivePlayers.stream()
-                .map(id -> plugin.getServer().getPlayer(id))
-                .filter(Objects::nonNull)
-                .filter(Player::isOnline)
+                .filter(iup -> iup.isOnline())
                 .collect(Collectors.toCollection(HashSet::new));
     }
 

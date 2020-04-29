@@ -9,6 +9,7 @@ import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "add")
@@ -69,6 +70,6 @@ public class SpawnsAddCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns add [x] [z] §7pour ajouter un point de spawn.");
     }
 }

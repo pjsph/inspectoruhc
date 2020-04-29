@@ -4,6 +4,7 @@ import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -40,7 +41,7 @@ public class SpectatorsCommand extends AbstractCommand {
                         throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.UNKNOW, this);
                     }
 
-                    p.getGameManager().addStartupSpectator(player);
+                    p.getGameManager().addStartupSpectator(IUPlayer.thePlayer(player));
                     sender.sendMessage("§aLe joueur " + player.getName() + " est maintenant un spectateur.");
                 }
             } else if(subCommand.equalsIgnoreCase("remove")) {
@@ -53,7 +54,7 @@ public class SpectatorsCommand extends AbstractCommand {
                         throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.UNKNOW, this);
                     }
 
-                    p.getGameManager().removeStartupSpectator(player);
+                    p.getGameManager().removeStartupSpectator(IUPlayer.thePlayer(player));
                     sender.sendMessage("§aLe joueur " + player.getName() + " est maintenant dans la partie.");
                 }
             } else if(subCommand.equalsIgnoreCase("list")) {
@@ -98,10 +99,10 @@ public class SpectatorsCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return Arrays.asList(ChatColor.YELLOW + "----- Spectateurs -----",
-                ChatColor.ITALIC + "/iu spec add <player>" + ChatColor.GRAY + " pour ajouter un spectateur.",
-                ChatColor.ITALIC + "/iu spec remove <player>" + ChatColor.GRAY + " pour supprimer un spectateur.",
-                ChatColor.ITALIC + "/iu spec list" + ChatColor.GRAY + " pour voir la liste des spectateurs."
+        return Arrays.asList(
+                "§e/iu spec add <player> §7pour ajouter un spectateur.",
+                "§e/iu spec remove <player> §7pour supprimer un spectateur.",
+                "§e/iu spec list §7pour voir la liste des spectateurs."
         );
     }
 }

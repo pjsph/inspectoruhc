@@ -2,29 +2,35 @@ package me.pjsph.inspectoruhc.listeners;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.events.*;
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.scoreboard.ScoreboardSign;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.tools.IUSound;
 import me.pjsph.inspectoruhc.tools.Titles;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Sound;
+import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerAchievementAwardedEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.*;
+import org.bukkit.event.server.ServerListPingEvent;
+import org.bukkit.event.weather.WeatherChangeEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,45 +45,48 @@ public class GameListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent ev) {
-        if(!plugin.getGameManager().hasStarted() || plugin.getGameManager().isPlayerDead(ev.getEntity())) {
+        IUPlayer victim = IUPlayer.thePlayer(ev.getEntity());
+
+        if(!plugin.getGameManager().hasStarted() || plugin.getGameManager().isPlayerDead(victim))
             return;
-        }
 
         /* If the player has the roughneck kit and it's its first death, his death is treated by the KitsListener class */
-        if(Kit.getKit(ev.getEntity().getUniqueId()) != null &&
-                Kit.getKit(ev.getEntity().getUniqueId()).getKitType() == Kit.KIT_TYPES.ROUGHNECK &&
+        if(Kit.getKit(victim) != null &&
+                Kit.getKit(victim).getKitType() == Kit.KIT_TYPES.ROUGHNECK &&
                 plugin.getGameManager().isKitsActivated() &&
-                KitsListener.canInspectsAction(ev.getEntity().getUniqueId())) {
+                victim.getCache().getBoolean("kit_roughneck"))
             return;
-        }
 
         /* Call the PlayerDeathEvent */
-        plugin.getServer().getPluginManager().callEvent(new me.pjsph.inspectoruhc.events.PlayerDeathEvent(ev.getEntity(), ev));
+        plugin.getServer().getPluginManager().callEvent(new me.pjsph.inspectoruhc.events.PlayerDeathEvent(victim, ev));
 
         /* Death sound */
         new IUSound(Sound.WITHER_SPAWN).broadcast();
 
-        plugin.getGameManager().addDead(ev.getEntity());
+        plugin.getGameManager().addDead(victim);
+        plugin.getGameManager().addDeathLocation(victim, victim.getPlayer().getLocation());
+
+        final ItemStack head = new ItemStack(Material.SKULL_ITEM);
+        head.setDurability((short)3);
+        final SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
+        skullMeta.setOwner(victim.getPlayer().getName());
+        skullMeta.setDisplayName("Head");
+        head.setItemMeta(skullMeta);
+        victim.getPlayer().getWorld().dropItem(victim.getPlayer().getLocation(), head);
 
         enableSpectatorModeOnRespawn.add(ev.getEntity().getUniqueId());
 
         /* Give xp to the killer */
         Player killer = ev.getEntity().getKiller();
-        if(killer != null) {
-            boolean inSameTeam = Team.inSameTeam(ev.getEntity(), killer);
-
-            if(!inSameTeam) {
-                killer.giveExpLevels(5);
-            }
-        }
+        if(killer != null)
+            killer.giveExpLevels(5);
 
         /* Check if the team is empty */
-        final Team team = Team.getTeamForPlayer(ev.getEntity());
+        final Team team = Team.getTeamForPlayer(victim);
         if(team != null) {
             boolean isAliveTeam = false;
-
-            for(UUID id : team.getPlayersUUID()) {
-                if(!plugin.getGameManager().isPlayerDead(id)) {
+            for(IUPlayer iup : team.getPlayers()) {
+                if(!plugin.getGameManager().isPlayerDead(iup)) {
                     isAliveTeam = true;
                     break;
                 }
@@ -88,21 +97,31 @@ public class GameListener implements Listener {
                 plugin.getServer().getPluginManager().callEvent(new TeamDeathEvent(team));
 
                 /* Display the team death message after the player's death one */
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    Bukkit.broadcastMessage("§8§l>> §6L'équipe des " + team.getColor() + team.getName() + " §6est éliminée !");
-                }, 1L);
+                if(plugin.getGameManager().isRolesActivated()) {
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            plugin.getGameManager().broadcastMessage("§8§l>> §6L'équipe des " + team.getColor() + team.getName() + " §6est éliminée !");
+                        }
+                    }.runTaskLater(plugin, 1L);
+                }
             }
 
             /* Display a death message in the console */
             plugin.getServer().getConsoleSender().sendMessage("§6-- Mort de " + ev.getEntity().getDisplayName() + " §6(" + ev.getDeathMessage() + "§6) --");
 
             /* Display the player's death message */
-            String deathMsg = "§8§l>> §6" + ev.getDeathMessage();
+            String deathMsg;
+            if(killer != null)
+                deathMsg = "§8§l>> §6"+victim.getPlayer().getName()+" est mort.";
+            else
+                deathMsg = "§8§l>> §6" + ev.getDeathMessage();
             ev.setDeathMessage(deathMsg);
 
             plugin.getGameManager().updateAliveCache();
+            plugin.getMOTDManager().updateMOTDDuringGame();
 
-            if(plugin.getGameManager().hasStarted() && plugin.getGameManager().getAliveTeamsCount() == 1) {
+            if(plugin.getGameManager().hasStarted() && plugin.getGameManager().getAliveTeamsCount() <= 1) {
                 /* Call the GameEndsEvent */
                 plugin.getServer().getPluginManager().callEvent(new GameEndsEvent(plugin.getGameManager().getAliveTeams().size() == 0 ? Team.INSPECTORS : plugin.getGameManager().getAliveTeams().iterator().next()));
             }
@@ -137,15 +156,9 @@ public class GameListener implements Listener {
         }
     }
 
-    /* TODO update MOTD manager */
-
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent ev) {
-        if(!plugin.getGameManager().hasStarted()) {
-            plugin.getGameManager().initPlayer(ev.getPlayer());
-
-            plugin.getRulesManager().displayRulesTo(ev.getPlayer());
-        }
+        IUPlayer iup = IUPlayer.thePlayer(ev.getPlayer());
 
         /* Initialization of the scoreboard */
         ScoreboardSign scoreboardSign = new ScoreboardSign(ev.getPlayer(), "§3InspectorUHC");
@@ -154,17 +167,18 @@ public class GameListener implements Listener {
         ScoreboardSign.getScoreboards().put(ev.getPlayer(), scoreboardSign);
 
         /* Initialization of the spectator mode */
-        if(plugin.getGameManager().hasStarted() && !plugin.getGameManager().getAlivePlayers().contains(ev.getPlayer())) {
+        if(plugin.getGameManager().hasStarted() && !plugin.getGameManager().getAlivePlayers().contains(iup)) {
             plugin.getSpectatorsManager().setSpectating(ev.getPlayer(), true);
-            plugin.getGameManager().addStartupSpectator(ev.getPlayer());
+            plugin.getGameManager().addStartupSpectator(IUPlayer.thePlayer(ev.getPlayer()));
         }
 
-        /* Update gamemode */
-        if(!plugin.getGameManager().hasStarted()) {
-            ev.getPlayer().getInventory().clear();
+        /* Initialization of the player */
+        InspectorUHC.get().getGameManager().join(iup);
 
-            ev.getPlayer().setGameMode(ev.getPlayer().isOp() ? GameMode.CREATIVE : GameMode.ADVENTURE);
-            ev.getPlayer().teleport(plugin.getServer().getWorlds().get(0).getSpawnLocation().add(0, 1, 0));
+        /* If he needs to be resurrected */
+        if(plugin.getGameManager().getDeadPlayersToResurrect().contains(ev.getPlayer().getName())) {
+            plugin.getGameManager().resurrect(ev.getPlayer().getName());
+            plugin.getGameManager().getDeadPlayersToResurrect().remove(ev.getPlayer().getName());
         }
     }
 
@@ -175,6 +189,14 @@ public class GameListener implements Listener {
             scoreboardSign.destroy();
             ScoreboardSign.getScoreboards().remove(ev.getPlayer());
         }
+
+        /* Wait other events and then unregister the player */
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                InspectorUHC.get().getGameManager().leave(IUPlayer.thePlayer(ev.getPlayer()));
+            }
+        }.runTaskLater(plugin, 2L);
     }
 
     @EventHandler
@@ -188,6 +210,14 @@ public class GameListener implements Listener {
     public void onBlockBreak(BlockBreakEvent ev) {
         if(!plugin.getGameManager().hasStarted() && !ev.getPlayer().isOp()) {
             ev.setCancelled(true);
+        }
+        final Block block = ev.getBlock();
+        final Location loc = ev.getBlock().getLocation();
+        final Random random = new Random();
+        final double r = random.nextDouble();
+        if(r <= 2 * 0.01 && block.getType() == Material.LEAVES) {
+            block.setType(Material.AIR);
+            block.getWorld().dropItemNaturally(loc, new ItemStack(Material.APPLE, 1));
         }
     }
 
@@ -206,87 +236,66 @@ public class GameListener implements Listener {
             plugin.getServer().broadcastMessage("§6Fin de l'épisode " + String.valueOf(ev.getNewEpisode() - 1) + ".");
         }
 
-        Titles.broadcastTitle(
-                5, 32, 0,
-                "§6Episode §e" + (ev.getNewEpisode() - 1) + " §7> §7" + ev.getNewEpisode(),
-                ""
-        );
+        new BukkitRunnable() {
+            int seconds = 3;
+            @Override
+            public void run() {
+                if(seconds == 0) {
+                    (new IUSound(Sound.FIREWORK_BLAST)).broadcast();
+                    (new IUSound(Sound.FIREWORK_LARGE_BLAST)).broadcast();
+                    this.cancel();
+                } else if(seconds == 1) {
+                    Titles.broadcastTitle(
+                            0, 32, 8,
+                            "§6Episode §7" + (ev.getNewEpisode() - 1) + " §7> §e" + ev.getNewEpisode(),
+                            ""
+                    );
 
-        (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+                    (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+                } else if(seconds == 2) {
+                    Titles.broadcastTitle(
+                            0, 32, 0,
+                            "§6Episode §7" + (ev.getNewEpisode() - 1) + " §e> §7" + ev.getNewEpisode(),
+                            ""
+                    );
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            Titles.broadcastTitle(
-                    0, 32, 0,
-                    "§6Episode §7" + (ev.getNewEpisode() - 1) + " §e> §7" + ev.getNewEpisode(),
-                    ""
-            );
+                    (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+                } else if(seconds == 3) {
+                    Titles.broadcastTitle(
+                            5, 32, 0,
+                            "§6Episode §e" + (ev.getNewEpisode() - 1) + " §7> §7" + ev.getNewEpisode(),
+                            ""
+                    );
 
-            (new IUSound(Sound.FIRE_IGNITE)).broadcast();
-        }, 20L);
+                    (new IUSound(Sound.FIRE_IGNITE)).broadcast();
+                }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            Titles.broadcastTitle(
-                    0, 32, 8,
-                    "§6Episode §7" + (ev.getNewEpisode() - 1) + " §7> §e" + ev.getNewEpisode(),
-                    ""
-            );
-
-            (new IUSound(Sound.FIRE_IGNITE)).broadcast();
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                (new IUSound(Sound.FIREWORK_BLAST)).broadcast();
-                (new IUSound(Sound.FIREWORK_LARGE_BLAST)).broadcast();
-            }, 7L);
-
-        }, 2 * 20L);
+                seconds--;
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
 
         if(plugin.getTimerManager().getEpisode() == 2) {
-            String txt = ChatColor.RED + "La bordure rétrécira à partir de 10min à l'épisode 2, et pendant 1h30.";
-            plugin.getServer().broadcastMessage(txt);
+            String txt = "§cLa bordure rétrécira dans "+plugin.getTimerManager().getMinutesBorderLeft()+" minutes.";
+            plugin.getGameManager().broadcastMessage(txt);
         }
+    }
 
-        if(!plugin.getGameManager().isRolesActivated()) {
-            plugin.getGameManager().activateRoles();
-
-            for(Player player : Team.INSPECTORS.getOnlinePlayers()) {
-                player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
-                player.sendMessage(ChatColor.DARK_AQUA + "Vous êtes un Inspecteur ! Vous devez démasquer et tuer les " + ChatColor.RED + "Criminels");
-                player.sendMessage(ChatColor.DARK_AQUA + "Attention cependant : ceux-ci peuvent connaître votre identité.");
-                player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
-            }
-
-            for(Player player : Team.THIEVES.getOnlinePlayers()) {
-                player.sendMessage(ChatColor.RED + "-------------------------------------------");
-                player.sendMessage(ChatColor.RED + "Vous êtes un Criminel ! Vous devez tuer les " + ChatColor.DARK_AQUA + "Inspecteurs");
-                player.sendMessage(ChatColor.RED + "Vous pouvez connaître l'identité d'un joueur avec /spy <joueur>");
-                player.sendMessage(ChatColor.RED + "Vous pouvez activer votre aura de Serial Killer pour perdre votre effet Weakness et le remplacer par Force I.");
-                player.sendMessage(ChatColor.RED + "Attention cependant : les " + ChatColor.DARK_AQUA + "Inspecteurs " + ChatColor.RED + "pourront alors vous tracer.");
-                player.sendMessage(ChatColor.RED + "/f (comme furie) pour activer/désactiver l'aura.");
-                player.sendMessage(ChatColor.RED + "-------------------------------------------");
-            }
-
-            for(String name : plugin.getGameManager().getPlayers()) {
-                Player player = Bukkit.getPlayer(name);
-
-                if(player != null && player.isOnline())
-                    player.sendMessage(ChatColor.AQUA + "Les équipes ont été annoncées.");
-            }
+    @EventHandler
+    public void appleRate(LeavesDecayEvent ev) {
+        final Block block = ev.getBlock();
+        final Location loc = block.getLocation();
+        final Random random = new Random();
+        final double r = random.nextDouble();
+        if(r <= 2 * 0.01 && block.getType() == Material.LEAVES) {
+            block.setType(Material.AIR);
+            block.getWorld().dropItemNaturally(loc, new ItemStack(Material.APPLE, 1));
         }
+    }
 
-        if(!plugin.getGameManager().isKitsActivated()) {
-            plugin.getGameManager().activateKits();
-
-            for(UUID id : Team.INSPECTORS.getPlayersUUID()) {
-                Player player = Bukkit.getPlayer(id);
-
-                if(player != null && plugin.getGameManager().getOnlineAlivePlayers().contains(player)) {
-                    player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
-                    player.sendMessage(ChatColor.DARK_AQUA + "Voici votre kit : " + Kit.getKit(id).getName() + ".");
-                    player.sendMessage(ChatColor.DARK_AQUA + "Celui-ci vous donne un objet, un effet ou une capacité spéciale :");
-                    player.sendMessage(ChatColor.DARK_AQUA + Kit.getKit(id).getDescription());
-                    player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
-                }
-            }
-        }
+    @EventHandler
+    public void onEat(PlayerItemConsumeEvent ev) {
+        if(ev.getItem().hasItemMeta() && ev.getItem().getItemMeta().getDisplayName().contains("Golden Head"))
+            ev.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 10 * 20, 1));
     }
 
     @EventHandler
@@ -300,16 +309,27 @@ public class GameListener implements Listener {
                 "§aBonne chance"
         );
 
-        /* Border */
-        plugin.getBorderManager().scheduleBorderReduction();
-
         /* Rules */
         Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getRulesManager().broadcastRules(), 15 * 20L);
+
+        /* MOTD */
+        plugin.getMOTDManager().updateMOTDDuringGame();
     }
 
     @EventHandler
     public void onGameEnds(GameEndsEvent ev) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getGameManager().finish(), 10 * 20L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getGameManager().finish(ev.getWinnerTeam(), ev.isForced()), 3 * 20L);
+        plugin.getMOTDManager().updateMOTDAfterGame(ev.getWinnerTeam());
+    }
+
+    @EventHandler
+    public void onWeatherChange(WeatherChangeEvent ev) {
+        ev.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onPing(ServerListPingEvent ev) {
+        ev.setMotd(plugin.getMOTDManager().getCurrentMOTD());
     }
 
 }

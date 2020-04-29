@@ -1,26 +1,19 @@
 package me.pjsph.inspectoruhc.events;
 
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-import java.util.UUID;
+import lombok.Getter;
 
 public class SpyEvent extends Event {
 
-    private UUID spy;
-    private UUID spied;
+    @Getter private IUPlayer spy;
+    @Getter private IUPlayer spied;
 
-    public SpyEvent(UUID spy, UUID spied) {
+    public SpyEvent(IUPlayer spy, IUPlayer spied) {
         this.spy = spy;
         this.spied = spied;
-    }
-
-    public UUID getSpy() {
-        return spy;
-    }
-
-    public UUID getSpied() {
-        return spied;
     }
 
     private static HandlerList handlers = new HandlerList();

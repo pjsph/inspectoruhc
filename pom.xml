@@ -6,7 +6,7 @@
 
     <groupId>me.pjsph.inspectoruhc</groupId>
     <artifactId>InspectorUHC</artifactId>
-    <version>1.0</version>
+    <version>1.0-SNAPSHOT</version>
     <name>InspectorUHC</name>
     <description>An ultra hardcore variant plugin.</description>
 
@@ -36,6 +36,13 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>dmulloy2-repo</id>
+            <url>http://repo.dmulloy2.net/nexus/repository/public/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>org.spigotmc</groupId>
@@ -47,6 +54,18 @@
             <groupId>org.bukkit</groupId>
             <artifactId>craftbukkit</artifactId>
             <version>1.8.8-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.comphenix.protocol</groupId>
+            <artifactId>ProtocolLib</artifactId>
+            <version>4.4.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.10</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

@@ -9,6 +9,9 @@ public class TimerManager {
 
     private int episode = 0;
 
+    private int minutesBorderLeft = 0;
+    private int minutesPvpLeft = 0;
+
     public int getMinutesLeft() {
         return minutesLeft;
     }
@@ -79,5 +82,29 @@ public class TimerManager {
 
     public int incEpisode() {
         return ++this.episode;
+    }
+
+    public int getMinutesBorderLeft() {
+        return minutesBorderLeft;
+    }
+
+    public void setMinutesBorderLeft(int minutesBorderLeft) {
+        this.minutesBorderLeft = minutesBorderLeft;
+    }
+
+    public int decMinutesBorderLeft() {
+        return --this.minutesBorderLeft;
+    }
+
+    public int getMinutesPvpLeft() {
+        return minutesPvpLeft;
+    }
+
+    public void setMinutesPvpLeft(int minutesPvpLeft) {
+        this.minutesPvpLeft = minutesPvpLeft;
+    }
+
+    public int decMinutesPvpLeft() {
+        return --this.minutesPvpLeft;
     }
 }

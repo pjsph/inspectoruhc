@@ -9,6 +9,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "remove")
@@ -56,6 +57,6 @@ public class SpawnsRemoveCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns remove [x] [z] §7pour supprimer un point de spawn.");
     }
 }

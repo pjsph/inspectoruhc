@@ -7,10 +7,7 @@ import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author zyuiop
@@ -65,11 +62,38 @@ public class ScoreboardSign {
         if(plugin.getGameManager().hasStarted()) {
             this.setLine(4, "§eTimer: §r" + getFormattedTimer(plugin.getTimerManager().getMinutesLeft(), plugin.getTimerManager().getSecondsLeft()) + " [§bE" + getFormattedEpisode(plugin.getTimerManager().getEpisode()) + "§r]");
 
-            if(!plugin.getGameManager().isRolesActivated()) {
-                this.setLine(5, "§cEquipes: §r< " + (plugin.getTimerManager().getMinutesRolesLeft() + 1) + "min");
-            } else if(plugin.getGameManager().isRolesActivated() && !plugin.getGameManager().isKitsActivated()) {
-                this.setLine(5, "§cKits: §r< " + (plugin.getTimerManager().getMinutesKitsLeft() + 1) + "min");
-            } else {
+            String text = "";
+            List<Integer> timers = new ArrayList<>();
+            if(!plugin.getGameManager().isPvpActivated())
+                timers.add(plugin.getTimerManager().getMinutesPvpLeft());
+            if(!plugin.getGameManager().isRolesActivated())
+                timers.add(plugin.getTimerManager().getMinutesRolesLeft());
+            if(!plugin.getGameManager().isKitsActivated())
+                timers.add(plugin.getTimerManager().getMinutesKitsLeft());
+            if(!plugin.getBorderManager().isShrinking())
+                timers.add(plugin.getTimerManager().getMinutesBorderLeft());
+
+            try {
+                int min = timers
+                        .stream()
+                        .filter(v -> v != -1)
+                        .mapToInt(v -> v)
+                        .min()
+                        .orElseThrow(NoSuchElementException::new);
+
+                if(min == plugin.getTimerManager().getMinutesPvpLeft() && !plugin.getGameManager().isPvpActivated())
+                    text = "Pvp";
+                else if(min == plugin.getTimerManager().getMinutesRolesLeft() && !plugin.getGameManager().isRolesActivated())
+                    text = "Equipes";
+                else if(min == plugin.getTimerManager().getMinutesKitsLeft() && !plugin.getGameManager().isKitsActivated())
+                    text = "Kits";
+                else if(min == plugin.getTimerManager().getMinutesBorderLeft() && !plugin.getBorderManager().isShrinking())
+                    text = "Bordure";
+
+                if(!text.equals("")) {
+                    this.setLine(5, "§c" + text + ": §r< " + (min + 1) + "min");
+                }
+            } catch (NoSuchElementException e) {
                 this.removeLine(5);
             }
         }

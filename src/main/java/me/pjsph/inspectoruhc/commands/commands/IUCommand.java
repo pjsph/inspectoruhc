@@ -21,6 +21,16 @@ public class IUCommand extends AbstractCommand {
         registerSubCommand(new SpectatorsCommand(plugin));
         registerSubCommand(new SpawnsCommand(plugin));
         registerSubCommand(new ShiftCommand(plugin));
+        registerSubCommand(new FeedCommand(plugin));
+        registerSubCommand(new FeedAllCommand(plugin));
+        registerSubCommand(new HealCommand(plugin));
+        registerSubCommand(new HealAllCommand(plugin));
+        registerSubCommand(new ReviveCommand(plugin));
+        registerSubCommand(new SkipCommand(plugin));
+        registerSubCommand(new ChatCommand(plugin));
+        registerSubCommand(new BorderCommand(plugin));
+        registerSubCommand(new EndCommand(plugin));
+        registerSubCommand(new ScenariosCommand());
     }
 
     @Override

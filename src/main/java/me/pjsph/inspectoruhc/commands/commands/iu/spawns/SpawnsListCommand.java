@@ -7,6 +7,7 @@ import me.pjsph.inspectoruhc.commands.annotations.Command;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "list")
@@ -49,6 +50,6 @@ public class SpawnsListCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns list §7pour lister les points de spawn enregistrés.");
     }
 }

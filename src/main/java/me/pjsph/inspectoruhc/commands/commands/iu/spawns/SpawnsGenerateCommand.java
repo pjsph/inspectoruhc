@@ -7,6 +7,7 @@ import me.pjsph.inspectoruhc.commands.annotations.Command;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "generate")
@@ -49,6 +50,6 @@ public class SpawnsGenerateCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns generate §7pour générer les points de spawn automatiquement.");
     }
 }

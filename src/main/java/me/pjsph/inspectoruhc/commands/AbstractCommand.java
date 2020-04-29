@@ -24,7 +24,7 @@ public abstract class AbstractCommand {
             throw new IllegalArgumentException("Cannot define a parent twice.");
         }
 
-        this.parent = parent;
+        this.parent = command;
     }
 
     public AbstractCommand getParent() {

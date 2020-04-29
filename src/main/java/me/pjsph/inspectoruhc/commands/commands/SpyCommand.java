@@ -5,6 +5,7 @@ import me.pjsph.inspectoruhc.commands.AbstractCommand;
 import me.pjsph.inspectoruhc.commands.CannotExecuteCommandException;
 import me.pjsph.inspectoruhc.commands.annotations.Command;
 import me.pjsph.inspectoruhc.events.SpyEvent;
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import me.pjsph.inspectoruhc.kits.Kit;
 import me.pjsph.inspectoruhc.teams.Team;
 import org.bukkit.Bukkit;
@@ -35,8 +36,8 @@ public class SpyCommand extends AbstractCommand {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.NOT_ALLOWED, this);
         }
 
-        Player executor = (Player) sender;
-        if(Team.getTeamForPlayer(executor) == Team.INSPECTORS && (Kit.getKit(executor.getUniqueId()) == null || Kit.getKit(executor.getUniqueId()).getKitType() != Kit.KIT_TYPES.SPY_GLASSES)) {
+        IUPlayer executor = IUPlayer.thePlayer((Player) sender);
+        if(Team.getTeamForPlayer(executor) == Team.INSPECTORS && (Kit.getKit(executor) == null || Kit.getKit(executor).getKitType() != Kit.KIT_TYPES.SPY_GLASSES || !p.getGameManager().isKitsActivated())) {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.NOT_ALLOWED, this);
         }
 
@@ -44,11 +45,11 @@ public class SpyCommand extends AbstractCommand {
             throw new CannotExecuteCommandException(CannotExecuteCommandException.Reason.NEED_DOC, this);
         }
 
-        Player target = Bukkit.getPlayer(args[0]);
-        if(target != null && target.isOnline()) {
-
-            if(Math.round(target.getLocation().distance(executor.getLocation())) <= 15.0d)
-                p.getServer().getPluginManager().callEvent(new SpyEvent(executor.getUniqueId(), target.getUniqueId()));
+        Player targetP = Bukkit.getPlayer(args[0]);
+        if(targetP != null && targetP.isOnline()) {
+            IUPlayer target = IUPlayer.thePlayer(targetP);
+            if(Math.round(target.getPlayer().getLocation().distance(executor.getPlayer().getLocation())) <= 15.0d)
+                p.getServer().getPluginManager().callEvent(new SpyEvent(executor, target));
 
             else
                 sender.sendMessage("§cCe joueur est trop loin de vous. Le joueur ciblé dans se trouver dans un rayon de 15 blocks autour de vous.");
@@ -61,11 +62,9 @@ public class SpyCommand extends AbstractCommand {
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if(args.length == 1) {
             List<String> list = new ArrayList<>();
-            for(OfflinePlayer players : p.getGameManager().getAlivePlayers()) {
-                if(players.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
-                    list.add(players.getName());
-                }
-            }
+            for(IUPlayer players : p.getGameManager().getAlivePlayers())
+                if(Bukkit.getOfflinePlayer(players.getUuid()).getName().toLowerCase().startsWith(args[0].toLowerCase()))
+                    list.add((Bukkit.getOfflinePlayer(players.getUuid()).getName()));
 
             if(!(sender instanceof Player)) return list; // Should never happen
 
@@ -81,7 +80,7 @@ public class SpyCommand extends AbstractCommand {
     @Override
     public List<String> help(CommandSender sender) {
         return Arrays.asList(
-                "§o/spy <joueur> §7pour connaître l'équipe d'un joueur."
+                "§e/spy <joueur> §7pour connaître l'équipe d'un joueur."
         );
     }
 }

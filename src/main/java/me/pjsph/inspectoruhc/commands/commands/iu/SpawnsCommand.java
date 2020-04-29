@@ -7,6 +7,7 @@ import me.pjsph.inspectoruhc.commands.annotations.Command;
 import me.pjsph.inspectoruhc.commands.commands.iu.spawns.*;
 import org.bukkit.command.CommandSender;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Command(name = "spawns")
@@ -32,6 +33,6 @@ public class SpawnsCommand extends AbstractCommand {
 
     @Override
     public List<String> help(CommandSender sender) {
-        return null;
+        return Arrays.asList("§e/iu spawns §7pour afficher l'aide de cette commande.");
     }
 }

@@ -1,7 +1,9 @@
 package me.pjsph.inspectoruhc.borders;
 
 import me.pjsph.inspectoruhc.InspectorUHC;
+import me.pjsph.inspectoruhc.game.IUPlayer;
 import me.pjsph.inspectoruhc.task.BorderWarningTask;
+import me.pjsph.inspectoruhc.tools.IUSound;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,10 +13,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
+import lombok.Getter;
+
 public class BorderManager {
     private final boolean BORDER_SHRINKING = true;
-    private final long BORDER_SHRINKING_STARTS_AFTER = 30 * 60;
-    private final long BORDER_SHRINKING_DURATION = 90 * 60;
+    @Getter private final long BORDER_SHRINKING_STARTS_AFTER = 60 * 60;
+    private final long BORDER_SHRINKING_DURATION = 15 * 60;
     private final double BORDER_START_SIZE = 1000;
     private final double BORDER_SHRINKING_FINAL_SIZE = 200;
 
@@ -26,10 +30,12 @@ public class BorderManager {
     private BukkitRunnable warningTask = null;
 
     private Boolean warningFinalTimeEnabled = false;
-    private String warningTimerName = null;
+    private String warningTimerName;
     private CommandSender warningSender = null;
 
-    private MapShape mapShape = null;
+    private MapShape mapShape;
+
+    @Getter private boolean shrinking = false;
 
     public BorderManager(InspectorUHC plugin) {
         p = plugin;
@@ -70,9 +76,9 @@ public class BorderManager {
     public Set<Player> getPlayersOutside(int diameter) {
         HashSet<Player> playersOutside = new HashSet<Player>();
 
-        for(final Player player : p.getGameManager().getOnlineAlivePlayers()) {
-            if(!isInsideBorder(player.getLocation(), diameter)) {
-                playersOutside.add(player);
+        for(final IUPlayer player : p.getGameManager().getOnlineAlivePlayers()) {
+            if(!isInsideBorder(player.getPlayer().getLocation(), diameter)) {
+                playersOutside.add(player.getPlayer());
             }
         }
 
@@ -91,25 +97,11 @@ public class BorderManager {
         return warningSender;
     }
 
-    public void setWarningSize(int diameter, int timeLeft, CommandSender sender) {
-        // TODO
-
+    public void setWarningSize(int diameter) {
         this.warningSize = diameter;
 
-        if(timeLeft != 0) {
-
-        }
-
-        if(sender != null) {
-            this.warningSender = sender;
-        }
-
         warningTask = new BorderWarningTask();
-        warningTask.runTaskTimer(p, 20L, 20L * 90);
-    }
-
-    public void setWarningSize(int diameter) {
-        setWarningSize(diameter, 0, null);
+        warningTask.runTaskTimer(p, 20L, 20L * 30);
     }
 
     public void cancelWarning() {
@@ -134,9 +126,9 @@ public class BorderManager {
         Set<Player> playersOutside = getPlayersOutside(diameter);
 
         if(playersOutside.size() == 0) {
-            to.sendMessage("Tous les joueurs sont dans la barrière donnée.");
+            to.sendMessage("§aTous les joueurs sont dans la barrière donnée.");
         } else {
-            to.sendMessage("Il y a " + String.valueOf(playersOutside.size()) + " joueur(s) en dehors de cette barrière.");
+            to.sendMessage("§7Il y a " + String.valueOf(playersOutside.size()) + " joueur(s) en dehors de cette barrière.");
             for(Player player : getPlayersOutside(diameter)) {
                 double distance = getDistanceToBorder(player.getLocation(), diameter);
                 if(distance > 150) {
@@ -150,16 +142,31 @@ public class BorderManager {
         }
     }
 
-    public void scheduleBorderReduction() {
+    public void startBorderReduction() {
         if(BORDER_SHRINKING) {
-            Bukkit.getScheduler().runTaskLater(p, () -> {
-                Integer secondsPerBlock = (int) Math.rint(BORDER_SHRINKING_DURATION / (border.getDiameter() - BORDER_SHRINKING_FINAL_SIZE)) * 2;
+            int secondsPerBlock = (int) Math.rint(BORDER_SHRINKING_DURATION / (border.getDiameter() - BORDER_SHRINKING_FINAL_SIZE)) * 2;
 
-                border.setDiameter(BORDER_SHRINKING_FINAL_SIZE, BORDER_SHRINKING_DURATION);
+            border.setDiameter(BORDER_SHRINKING_FINAL_SIZE, BORDER_SHRINKING_DURATION);
+            shrinking = true;
 
-                Bukkit.broadcastMessage("§c§lLa bordure commence à rétrécir...");
-                Bukkit.broadcastMessage("§6Elle rétrécira d'un block toutes les " + secondsPerBlock + " secondes jusqu'à " + (int) BORDER_SHRINKING_FINAL_SIZE + " blocks de diamètre.");
-            }, BORDER_SHRINKING_STARTS_AFTER * 20L);
+            new BukkitRunnable() {
+                int ticks = 8;
+                @Override
+                public void run() {
+                    if(ticks-- % 2 == 0) {
+                        if (ticks == -1) {
+                            cancel();
+                            return;
+                        }
+                        (new IUSound(Sound.NOTE_STICKS, 1f, 0.529732f)).broadcast();
+                    }
+                    else
+                        (new IUSound(Sound.NOTE_STICKS, 1f, 0.667420f)).broadcast();
+                }
+            }.runTaskTimer(p, 0L, 7L);
+
+            p.getGameManager().broadcastMessage("§c§lLa bordure commence à rétrécir...");
+            p.getGameManager().broadcastMessage("§6Elle rétrécira d'un bloc toutes les "+secondsPerBlock+" secondes jusqu'à "+(int)BORDER_SHRINKING_FINAL_SIZE+" blocs de diamètre.");
         }
     }
 }

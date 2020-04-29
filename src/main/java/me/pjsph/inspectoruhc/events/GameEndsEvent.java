@@ -7,14 +7,23 @@ import org.bukkit.event.HandlerList;
 public class GameEndsEvent extends Event {
 
     private Team winner;
+    private boolean forced;
+
+    public GameEndsEvent(Team winner, boolean forced) {
+        this.winner = winner;
+        this.forced = forced;
+    }
 
     public GameEndsEvent(Team winner) {
         this.winner = winner;
+        forced = false;
     }
 
     public Team getWinnerTeam() {
         return winner;
     }
+
+    public boolean isForced() { return forced; }
 
     private static HandlerList handlers = new HandlerList();
 
