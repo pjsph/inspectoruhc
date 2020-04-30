@@ -29,10 +29,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class GameListener implements Listener {
     private InspectorUHC plugin;
@@ -174,6 +171,9 @@ public class GameListener implements Listener {
 
         /* Initialization of the player */
         InspectorUHC.get().getGameManager().join(iup);
+        if(plugin.getGameManager().isRolesActivated() && iup.getCache().get("can_see") != null)
+            for(IUPlayer chosenOne : (ArrayList<IUPlayer>) iup.getCache().get("can_see"))
+                iup.seeRoleOf(chosenOne);
 
         /* If he needs to be resurrected */
         if(plugin.getGameManager().getDeadPlayersToResurrect().contains(ev.getPlayer().getName())) {

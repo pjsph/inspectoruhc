@@ -46,8 +46,17 @@ public class GameManager {
     @Getter private IUChat spectatorChat = new IUChat((sender, message) -> {
         return "§7"+sender.getName()+" §6» §f"+message;
     });
-    @Getter private IUChat commonChat = new IUChat((sender, message) -> {
-        return "§e"+sender.getName()+" §6» §f"+message;
+    @Getter private IUChat commonChat = new IUChat(new IUChat.IUChatCallback() {
+        @Override
+        public String send(IUPlayer sender, String message) {
+            if(sender.getPlayer().isOp())
+                return "§d"+sender.getName()+" §6» §f"+message;
+            return null;
+        }
+        @Override
+        public String receive(IUPlayer sender, String message) {
+            return "§e"+sender.getName()+" §6» §f"+message;
+        }
     });
 
     public GameManager(InspectorUHC plugin) {
@@ -93,19 +102,7 @@ public class GameManager {
             plugin.getRulesManager().displayRulesTo(player);
         }
 
-        if(iup.getPlayer().isOp())
-            iup.joinChat(commonChat, new IUChat.IUChatCallback() {
-                @Override
-                public String receive(IUPlayer sender, String message) {
-                    return "§e"+sender.getName()+" §c§l» §f"+message;
-                }
-                @Override
-                public String send(IUPlayer sender, String message) {
-                    return "§d"+sender.getName()+" §c§l» §f"+message;
-                }
-            });
-        else
-            iup.joinChat(commonChat);
+        iup.joinChat(commonChat);
     }
 
     public void leave(IUPlayer iup) {
@@ -394,9 +391,6 @@ public class GameManager {
 
         /* Randomize kits */
         List<IUPlayer> inspectors = new ArrayList<>(Team.INSPECTORS.getPlayers());
-        // TODO remove
-        new Kit(Kit.KIT_TYPES.ROUGHNECK).addOwner(inspectors.remove(0));
-
         List<Kit.KIT_TYPES> listKits = null;
         for(int i = 0; i < inspectors.size(); i++) {
             if(listKits == null || listKits.size() == 0) listKits = new ArrayList<>(Arrays.asList(Kit.KIT_TYPES.values()));
@@ -422,6 +416,7 @@ public class GameManager {
             if(alivePlayers.contains(iup) || !players.contains(iup))
                 return false;
             alivePlayers.add(iup);
+            iup.joinChat(commonChat);
             updateAliveCache();
             plugin.getMOTDManager().updateMOTDDuringGame();
 

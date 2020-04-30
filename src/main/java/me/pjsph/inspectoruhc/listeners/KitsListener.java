@@ -44,7 +44,14 @@ public class KitsListener implements Listener {
                 iup.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, 0, false, false));
         /* SPY_GLASSES: Add to canSpy */
         } else if(kit.getKitType() == Kit.KIT_TYPES.SPY_GLASSES) {
-            iup.getCache().set("kit_spy", true);
+            ArrayList<IUPlayer> chosen = new ArrayList<>(InspectorUHC.get().getGameManager().getAlivePlayers());
+            if(chosen.contains(iup)) chosen.remove(iup);
+            Random rand = new Random();
+            while(chosen.size() > 2) // Size of chosen must be < 2
+                chosen.remove(rand.nextInt(chosen.size()));
+            iup.getCache().set("can_see", chosen);
+            for(IUPlayer chosenOne : (ArrayList<IUPlayer>)iup.getCache().get("can_see"))
+                iup.seeRoleOf(chosenOne);
         /* ROUGHNECK: Add to canRespawn */
         } else if(kit.getKitType() == Kit.KIT_TYPES.ROUGHNECK) {
             iup.getCache().set("kit_roughneck", true);
@@ -156,46 +163,8 @@ public class KitsListener implements Listener {
     }
 
     @EventHandler
-    public void onSpy(SpyEvent ev) {
-        IUPlayer spied = ev.getSpied();
-        IUPlayer spy = ev.getSpy();
-
-        if((spy.getCache().get("kit_spy") != null && spy.getCache().getBoolean("kit_spy")) ||
-                (spy.getCache().get("thief_inspect") != null && (int) spy.getCache().get("thief_inspect") > 0)) {
-
-            Team team = Team.getTeamForPlayer(spied);
-
-            if(team != null) {
-                spy.sendMessage("§aLe joueur espionné est un " + team.getColor() + team.getName().substring(0, team.getName().length() - 1) + "§a.");
-            } else {
-                spy.sendMessage("§cUne erreur est survenue, l'équipe du joueur est introuvable.");
-            }
-
-            if(spy.getCache().get("kit_spy") != null) {
-                spy.getCache().set("kit_spy", false);
-                spy.sendMessage("§7Vous ne pouvez plus espionner durant cet épisode.");
-            }
-            else if(spy.getCache().get("thief_inspect") != null) {
-                spy.getCache().set("thief_inspect", (int) spy.getCache().get("thief_inspect") - 1);
-                spy.sendMessage("§7Il vous reste (" + spy.getCache().get("thief_inspect") + "/1) possibilité d'espionner pendant cet épisode.");
-            }
-        } else {
-            if(spy.getCache().get("kit_spy") != null)
-                spy.sendMessage("§cVous avez épuisé votre quota d'espionnage (0/1), recharge au prochain épisode.");
-            else
-                spy.sendMessage("§cVous avez épuisé votre quota d'espionnage (0/1), recharge au prochain épisode.");
-        }
-    }
-
-    @EventHandler
     public void onEpisodeChange(EpisodeChangedEvent ev) {
         if(!this.plugin.getGameManager().isRolesActivated()) return;
-        /* Reset SPY action */
-        Kit.getOwners(Kit.KIT_TYPES.SPY_GLASSES).forEach(iup -> iup.getCache().set("kit_spy", true));
-
-        /* Add one THIEF action */
-        Team.THIEVES.getPlayers().forEach(iup -> iup.getCache().set("thief_inspect",
-                (int)iup.getCache().get("thief_inspect") + 1 > 1 ? 1 : (int)iup.getCache().get("thief_inspect") + 1));
 
         /* Broadcast undersense message */
         if(plugin.getGameManager().isKitsActivated()) {
@@ -269,8 +238,16 @@ public class KitsListener implements Listener {
             iup.getPlayer().removePotionEffect(PotionEffectType.ABSORPTION);
             iup.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 0, false, false));
 
-            iup.getCache().set("thief_inspect", 1);
             iup.getCache().set("thief_aura", false);
+
+            ArrayList<IUPlayer> chosen = new ArrayList<>(InspectorUHC.get().getGameManager().getAlivePlayers());
+            if(chosen.contains(iup)) chosen.remove(iup);
+            Random rand = new Random();
+            while(chosen.size() > 2) // Size of chosen must be < 2
+                chosen.remove(rand.nextInt(chosen.size()));
+            iup.getCache().set("can_see", chosen);
+            for(IUPlayer chosenOne : (ArrayList<IUPlayer>)iup.getCache().get("can_see"))
+                iup.seeRoleOf(chosenOne);
         }
     }
 }

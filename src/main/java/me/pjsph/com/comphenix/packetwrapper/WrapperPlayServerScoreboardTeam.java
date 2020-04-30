@@ -123,6 +123,10 @@ public class WrapperPlayServerScoreboardTeam extends AbstractPacket {
 		handle.getChatComponents().write(1, value);
 	}
 
+	public void setPrefix(String value) {
+		handle.getStrings().write(2, value);
+	}
+
 	/**
 	 * Retrieve Team Suffix.
 	 * <p>

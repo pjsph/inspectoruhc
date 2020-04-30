@@ -6,18 +6,18 @@ import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerChat;
 import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerPlayerInfo;
+import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerScoreboardTeam;
 import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerTitle;
 import me.pjsph.inspectoruhc.InspectorUHC;
-import me.pjsph.inspectoruhc.events.UpdatePrefixEvent;
 import me.pjsph.inspectoruhc.misc.chat.IUChat;
 import me.pjsph.inspectoruhc.misc.chat.IUNoChat;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.tools.VariableCache;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import lombok.*;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 
 import java.util.*;
 
@@ -95,15 +95,25 @@ public class IUPlayer {
         return player != null ? getPlayer().getName() : name;
     }
 
-    public void updatePrefixOfPlayer(IUPlayer toUpdate) { // TODO change : remove list canSeeRoleOf
+    public void seeRoleOf(IUPlayer toUpdate) {
         if(!isDead() && player != null) {
-            if(toUpdate.isOnline() && !toUpdate.isDead()) {
+            if(!toUpdate.isDead()) {
+                OfflinePlayer toUpdateOff = Bukkit.getOfflinePlayer(toUpdate.getUuid());
+                String displayName = Team.getTeamForPlayer(toUpdate).getColor()+toUpdateOff.getName();
+
                 WrapperPlayServerPlayerInfo info = new WrapperPlayServerPlayerInfo();
                 ArrayList<PlayerInfoData> infos = new ArrayList<>();
-                info.setAction(EnumWrappers.PlayerInfoAction.ADD_PLAYER);
-                infos.add(new PlayerInfoData(new WrappedGameProfile(toUpdate.getPlayer().getUniqueId(), toUpdate.getPlayer().getName()), 0, EnumWrappers.NativeGameMode.SURVIVAL, WrappedChatComponent.fromText(toUpdate.getPlayer().getName())));
+                info.setAction(EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME);
+                infos.add(new PlayerInfoData(new WrappedGameProfile(toUpdateOff.getUniqueId(), toUpdateOff.getName()), 0, EnumWrappers.NativeGameMode.SURVIVAL, WrappedChatComponent.fromText(displayName)));
                 info.setData(infos);
                 info.sendPacket(getPlayer());
+
+                WrapperPlayServerScoreboardTeam team = new WrapperPlayServerScoreboardTeam();
+                team.setMode(0);
+                team.setName(toUpdateOff.getName());
+                team.setPrefix(Team.getTeamForPlayer(toUpdate).getColor().toString());
+                team.setPlayers(Arrays.asList(toUpdateOff.getName()));
+                team.sendPacket(getPlayer());
             }
         }
     }
