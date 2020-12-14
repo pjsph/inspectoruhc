@@ -41,8 +41,9 @@ public class Timer extends BukkitRunnable {
                         List<String> near = new ArrayList<>();
                         for (IUPlayer thief : Team.THIEVES.getOnlinePlayers())
                             if(!plugin.getGameManager().isPlayerDead(thief))
-                                if (Math.round(thief.getPlayer().getLocation().distance(iup.getPlayer().getLocation())) <= 100.0d)
-                                    near.add(thief.getPlayer().getName());
+                                if(thief.getPlayer().getLocation().getWorld() == iup.getPlayer().getLocation().getWorld())
+                                    if (Math.round(thief.getPlayer().getLocation().distance(iup.getPlayer().getLocation())) <= 100.0d)
+                                        near.add(thief.getPlayer().getName());
                         iup.sendMessage("");
                         iup.sendMessage("§3" + near.size() + " §cCriminel(s) §3est/sont à proximité (< 100 blocs).");
                         iup.sendMessage("");

@@ -145,6 +145,10 @@ public class WrapperPlayServerSpawnEntityLiving extends AbstractPacket {
 		handle.getDoubles().write(0, value);
 	}
 
+	public void setX(int value) {
+		handle.getIntegers().write(0, value);
+	}
+
 	/**
 	 * Retrieve the y position of the object.
 	 * <p>
@@ -165,6 +169,10 @@ public class WrapperPlayServerSpawnEntityLiving extends AbstractPacket {
 		handle.getDoubles().write(1, value);
 	}
 
+	public void setY(int value) {
+		handle.getIntegers().write(1, value);
+	}
+
 	/**
 	 * Retrieve the z position of the object.
 	 * <p>
@@ -183,6 +191,10 @@ public class WrapperPlayServerSpawnEntityLiving extends AbstractPacket {
 	 */
 	public void setZ(double value) {
 		handle.getDoubles().write(2, value);
+	}
+
+	public void setZ(int value) {
+		handle.getIntegers().write(2, value);
 	}
 
 	/**
@@ -309,7 +321,7 @@ public class WrapperPlayServerSpawnEntityLiving extends AbstractPacket {
 	 * 
 	 * @param value - new value.
 	 */
-	/*public void setMetadata(WrappedDataWatcher value) {
+	public void setMetadata(WrappedDataWatcher value) {
 		handle.getDataWatcherModifier().write(0, value);
-	}*/
+	}
 }

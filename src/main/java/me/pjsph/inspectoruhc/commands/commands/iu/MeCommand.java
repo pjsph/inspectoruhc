@@ -11,6 +11,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,12 +37,28 @@ public class MeCommand extends AbstractCommand {
                 sender.sendMessage(ChatColor.RED + "Vous n'avez ni d'équipe ni de kit pour l'instant.");
             } else if(!plugin.getGameManager().isKitsActivated()) {
                 sender.sendMessage("Déjà oublié ? Vous êtes dans l'équipe : " + (Team.getTeamForPlayer(player) != null ? Team.getTeamForPlayer(player).getColor() + Team.getTeamForPlayer(player).getName() : ""));
+                Team team = Team.getTeamForPlayer(player);
+                if(team != null && team == Team.THIEVES) {
+                    player.sendMessage("§6(⌐■_■) Vous connaissez l'identité de :");
+                    for(IUPlayer chosenOne : (ArrayList<IUPlayer>)player.getCache().get("can_see")) {
+                        Team chosenTeam = Team.getTeamForPlayer(chosenOne);
+                        player.sendMessage("§7 - §l"+chosenOne.getName()+" est "+chosenTeam.getColor()+chosenTeam.getName().substring(0, chosenTeam.getName().length() - 1));
+                    }
+                }
             } else {
                 String teamName = Team.getTeamForPlayer(player) != null ? Team.getTeamForPlayer(player).getColor() + Team.getTeamForPlayer(player).getName() : "";
                 sender.sendMessage("§7Déjà oublié ? Vous êtes dans l'équipe : " + teamName);
                 if(Team.getTeamForPlayer(player) == Team.INSPECTORS) {
                     sender.sendMessage("§7Votre kit est le suivant : §3" + Kit.getKit(player).getName());
                     sender.sendMessage(Kit.getKit(player).getDescription());
+                }
+                Team team = Team.getTeamForPlayer(player);
+                if(team != null && (team == Team.THIEVES || team == Team.INSPECTORS && Kit.getKit(player).getKitType() == Kit.KIT_TYPES.SPY_GLASSES)) {
+                    player.sendMessage("§6(⌐■_■) Vous connaissez l'identité de :");
+                    for(IUPlayer chosenOne : (ArrayList<IUPlayer>)player.getCache().get("can_see")) {
+                        Team chosenTeam = Team.getTeamForPlayer(chosenOne);
+                        player.sendMessage("§7 - §l"+chosenOne.getName()+" est "+chosenTeam.getColor()+chosenTeam.getName().substring(0, chosenTeam.getName().length() - 1));
+                    }
                 }
             }
         }

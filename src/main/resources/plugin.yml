@@ -10,10 +10,6 @@ commands:
     description: InspectorUHC base command
     usage: /<ommand> <subcommand>
 
-  spy:
-    description: Spy a player
-    usage: /<command> <subcommand>
-
   f:
     description: Enable/disable the serial killer aura
     usage: /<command> <subcommand>
@@ -24,10 +20,6 @@ permissions:
     default: op
     children:
       iu.start: true
-
-  spy:
-    description: Allows a player to /spy
-    default: true
 
   f:
     description: Allows a player to /f

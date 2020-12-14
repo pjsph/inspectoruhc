@@ -50,6 +50,13 @@ public class KitsListener implements Listener {
             while(chosen.size() > 2) // Size of chosen must be < 2
                 chosen.remove(rand.nextInt(chosen.size()));
             iup.getCache().set("can_see", chosen);
+            iup.sendTitle("§6(⌐■_■)", "", 20*5);
+            iup.sendMessage("§6(⌐■_■) Vous connaissez l'identité de :");
+            for(IUPlayer chosenOne : (ArrayList<IUPlayer>)iup.getCache().get("can_see")) {
+                iup.seeRoleOf(chosenOne);
+                Team chosenTeam = Team.getTeamForPlayer(chosenOne);
+                iup.sendMessage("§7 - §l"+chosenOne.getName()+" est "+chosenTeam.getColor()+chosenTeam.getName().substring(0, chosenTeam.getName().length() - 1));
+            }
             for(IUPlayer chosenOne : (ArrayList<IUPlayer>)iup.getCache().get("can_see"))
                 iup.seeRoleOf(chosenOne);
         /* ROUGHNECK: Add to canRespawn */
@@ -120,12 +127,6 @@ public class KitsListener implements Listener {
                 if(kit.getKitType() != Kit.KIT_TYPES.ROUGHNECK || !victim.getCache().getBoolean("kit_roughneck")) {
                     return;
                 } else {
-                    /* Cancel death */
-                    ev.setCancelled(true);
-
-                    /* Give Resistance effect to the player */
-                    victim.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 30 * 20, 4, false, false));
-
                     /* Teleport away the player */
                     plugin.getSpawnsManager().reset();
                     try {
@@ -133,7 +134,7 @@ public class KitsListener implements Listener {
                                 plugin.getServer().getWorlds().get(0),
                                 1,
                                 plugin.getBorderManager().getCurrentBorderDiameter() - 25,
-                                250,
+                                0,
                                 plugin.getServer().getWorlds().get(0).getSpawnLocation().getX(),
                                 plugin.getServer().getWorlds().get(0).getSpawnLocation().getZ()
                         );
@@ -151,6 +152,12 @@ public class KitsListener implements Listener {
                         victim.getPlayer().setHealth(20d);
                         victim.getPlayer().setFoodLevel(20);
                         victim.getPlayer().setSaturation(20f);
+
+                        /* Cancel death */
+                        ev.setCancelled(true);
+
+                        /* Give Resistance effect to the player */
+                        victim.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 30 * 20, 4, false, false));
 
                         victim.getCache().set("kit_roughneck", false);
                     } catch(Exception e) {
@@ -234,20 +241,25 @@ public class KitsListener implements Listener {
     }
 
     public static void resetThievesAction(IUPlayer iup) {
+        iup.getCache().set("thief_aura", false);
+
+        ArrayList<IUPlayer> chosen = new ArrayList<>(InspectorUHC.get().getGameManager().getAlivePlayers());
+        if(chosen.contains(iup)) chosen.remove(iup);
+        Random rand = new Random();
+        while(chosen.size() > 2) // Size of chosen must be < 2
+            chosen.remove(rand.nextInt(chosen.size()));
+        iup.getCache().set("can_see", chosen);
+
         if(iup.isOnline()) {
             iup.getPlayer().removePotionEffect(PotionEffectType.ABSORPTION);
             iup.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 0, false, false));
-
-            iup.getCache().set("thief_aura", false);
-
-            ArrayList<IUPlayer> chosen = new ArrayList<>(InspectorUHC.get().getGameManager().getAlivePlayers());
-            if(chosen.contains(iup)) chosen.remove(iup);
-            Random rand = new Random();
-            while(chosen.size() > 2) // Size of chosen must be < 2
-                chosen.remove(rand.nextInt(chosen.size()));
-            iup.getCache().set("can_see", chosen);
-            for(IUPlayer chosenOne : (ArrayList<IUPlayer>)iup.getCache().get("can_see"))
+            iup.sendTitle("§6(⌐■_■)", "", 20 * 5);
+            iup.sendMessage("§6(⌐■_■) Vous connaissez l'identité de :");
+            for (IUPlayer chosenOne : (ArrayList<IUPlayer>) iup.getCache().get("can_see")) {
                 iup.seeRoleOf(chosenOne);
+                Team chosenTeam = Team.getTeamForPlayer(chosenOne);
+                iup.sendMessage("§7 - §l" + chosenOne.getName() + " est " + chosenTeam.getColor() + chosenTeam.getName().substring(0, chosenTeam.getName().length() - 1));
+            }
         }
     }
 }

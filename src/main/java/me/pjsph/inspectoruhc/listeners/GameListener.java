@@ -1,5 +1,11 @@
 package me.pjsph.inspectoruhc.listeners;
 
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import com.comphenix.protocol.wrappers.WrappedWatchableObject;
+import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerEntityDestroy;
+import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerEntityMetadata;
+import me.pjsph.com.comphenix.packetwrapper.WrapperPlayServerSpawnEntityLiving;
 import me.pjsph.inspectoruhc.InspectorUHC;
 import me.pjsph.inspectoruhc.events.*;
 import me.pjsph.inspectoruhc.game.IUPlayer;
@@ -8,8 +14,13 @@ import me.pjsph.inspectoruhc.scoreboard.ScoreboardSign;
 import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.tools.IUSound;
 import me.pjsph.inspectoruhc.tools.Titles;
+import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.*;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,12 +34,12 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 public class GameListener implements Listener {
@@ -180,6 +191,32 @@ public class GameListener implements Listener {
             plugin.getGameManager().resurrect(ev.getPlayer().getName());
             plugin.getGameManager().getDeadPlayersToResurrect().remove(ev.getPlayer().getName());
         }
+
+//        new BukkitRunnable() {
+//            int time = 0;
+//            @Override
+//            public void run() {
+//                int entityId = Integer.MIN_VALUE+iup.getPlayer().getEntityId();
+//                Location loc = iup.getPlayer().getLocation();
+//
+//                EntityArmorStand eas = new EntityArmorStand(((CraftWorld)loc.getWorld()).getHandle(), loc.getX(), loc.getY()+0.3, loc.getZ());
+//                eas.setPosition(loc.getX(), loc.getY()+0.3, loc.getZ());
+//                eas.setInvisible(true);
+//                eas.setCustomNameVisible(true);
+//                eas.setCustomName(time++ % 40 >= 30 ? "Analyse..." : (time % 40 >= 20 ? "Analyse.." : (time % 40 >= 10 ? "Analyse." : "Analyse")));
+//
+//                PacketPlayOutSpawnEntityLiving spawn = new PacketPlayOutSpawnEntityLiving(eas);
+//                try {
+//                    Field field = spawn.getClass().getDeclaredField("a");
+//                    field.setAccessible(true);
+//                    field.set(spawn, entityId);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//
+//                ((CraftPlayer)iup.getPlayer()).getHandle().playerConnection.sendPacket(spawn);
+//            }
+//        }.runTaskTimer(plugin, 0l, 2l);
     }
 
     @EventHandler

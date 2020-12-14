@@ -121,8 +121,6 @@ public class GameManager {
             alivePlayers.clear();
             aliveTeamsCount = 0;
 
-            Team.getTeams().forEach(team -> team.clear());
-
             Bukkit.getOnlinePlayers().stream()
                     .filter(p -> !spectators.contains(p))
                     .forEach(p -> players.add(IUPlayer.thePlayer(p)));
@@ -144,8 +142,8 @@ public class GameManager {
 
             if(plugin.getSpawnsManager().getSpawnPoints().size() < spawnNeeded) {
                 if(sender instanceof Player) sender.sendMessage("");
-                sender.sendMessage("§cImpossible de démarrer le jeu: pas assez de points de spawn.");
-                sender.sendMessage("§cUtilisez §o/iu spawns generate §cpour générer les points manquants.");
+                sender.sendMessage("§cImpossible de démarrer le jeu : pas assez de points de spawn.");
+                sender.sendMessage("§cUtilisez §e/iu spawns generate §cpour générer les points manquants.");
 
                 aliveTeamsCount = 0;
                 return;
@@ -382,11 +380,28 @@ public class GameManager {
         ArrayList<IUPlayer> playersToChoose = new ArrayList<>(players);
 
         ArrayList<Team> teams = new ArrayList<>();
-        for(IUPlayer player : playersToChoose) {
-            if(teams.size() == 0) teams.addAll(Arrays.asList(Team.values()));
-            Team team = teams.remove(0);
-            team.addPlayer(player);
-            System.out.println("[SPOIL] "+Bukkit.getOfflinePlayer(player.getUuid()).getName()+" rejoint l'équipe des "+team.getName());
+        for(int i = 0; i < playersToChoose.size(); i++) {
+            teams.add(Team.values()[i % 2]); // [INSPEC, CRIMI, INSPEC, CRIMI, INSPEC...]
+            System.out.println(teams);
+        }
+
+        for(Iterator<IUPlayer> ite = playersToChoose.iterator(); ite.hasNext();) {
+            IUPlayer player = ite.next();
+            if(Team.getTeamForPlayer(player) != null) {
+                Team team = Team.getTeamForPlayer(player);
+                if (!teams.remove(team)) {
+                    team.removePlayer(player);
+                    System.out.println("Removed "+Bukkit.getOfflinePlayer(player.getUuid()).getName()+" from "+team.getName());
+                } else {
+                    ite.remove();
+                    System.out.println("[SPOIL] " + Bukkit.getOfflinePlayer(player.getUuid()).getName() + " rejoint l'équipe des " + team.getName()+" (force)");
+                }
+            }
+            if(Team.getTeamForPlayer(player) == null) {
+                Team team = teams.remove(0);
+                team.addPlayer(player);
+                System.out.println("[SPOIL] " + Bukkit.getOfflinePlayer(player.getUuid()).getName() + " rejoint l'équipe des " + team.getName());
+            }
         }
 
         /* Randomize kits */
@@ -484,11 +499,6 @@ public class GameManager {
     }
 
     public void activateRoles() {
-        /* Init thieves action */
-        for(IUPlayer iup : Team.THIEVES.getPlayers()){
-            KitsListener.resetThievesAction(iup);
-        }
-
         /* Messages */
         for(IUPlayer player : Team.INSPECTORS.getOnlinePlayers()) {
             player.sendMessage(ChatColor.DARK_AQUA + "-------------------------------------------");
@@ -505,6 +515,11 @@ public class GameManager {
             player.sendMessage(ChatColor.RED + "Attention cependant : les " + ChatColor.DARK_AQUA + "Inspecteurs " + ChatColor.RED + "pourront alors vous tracer.");
             player.sendMessage(ChatColor.RED + "/f (comme furie) pour activer/désactiver l'aura.");
             player.sendMessage(ChatColor.RED + "-------------------------------------------");
+        }
+
+        /* Init thieves action */
+        for(IUPlayer iup : Team.THIEVES.getPlayers()){
+            KitsListener.resetThievesAction(iup);
         }
 
         broadcastMessage("§bLes équipes ont été annoncées.");

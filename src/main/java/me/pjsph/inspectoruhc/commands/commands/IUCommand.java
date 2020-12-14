@@ -20,6 +20,7 @@ public class IUCommand extends AbstractCommand {
         registerSubCommand(new MeCommand(plugin));
         registerSubCommand(new SpectatorsCommand(plugin));
         registerSubCommand(new SpawnsCommand(plugin));
+        registerSubCommand(new TeamsCommand(plugin));
         registerSubCommand(new ShiftCommand(plugin));
         registerSubCommand(new FeedCommand(plugin));
         registerSubCommand(new FeedAllCommand(plugin));

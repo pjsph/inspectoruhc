@@ -65,22 +65,22 @@ public class Kit {
         /**
          * Allow the player (Inspector) to know the team of one player.
          */
-        SPY_GLASSES("Lunettes d'espion", "§3Vous pouvez espionner un joueur pour connaître son identité (/spy <player>)."),
+        SPY_GLASSES("(⌐■_■) Lunettes d'espion", "§3Vous pouvez espionner un joueur pour connaître son identité (/spy <player>)."),
 
         /**
          * Give Speed effect to the player so he can move easier than others.
          */
-        AGILITY("Agilité", "§3Vous obtenez un effet de Speed."),
+        AGILITY(">>---> Agilité", "§3Vous obtenez un effet de Speed."),
 
         /**
          * Give to the player a Thief's position.
          */
-        UNDERSENSE("Sixième sens", "§3Vous obtenez la position des §cCriminels §3à moins de cent blocs de vous, à chaque épisode."),
+        UNDERSENSE("(■) Sixième sens", "§3Vous obtenez la position des §cCriminels §3à moins de cent blocs de vous, à chaque épisode."),
 
         /**
          * Allow the player to respawn 1 time when he dies.
          */
-        ROUGHNECK("Dur à cuire", "§3Vous réapparaitrez lors de votre première mort.");
+        ROUGHNECK("|▼| Dur à cuire", "§3Vous réapparaitrez lors de votre première mort.");
 
         private String name;
         private String description;

@@ -21,6 +21,7 @@ import me.pjsph.inspectoruhc.misc.MOTDManager;
 import me.pjsph.inspectoruhc.misc.RulesManager;
 import me.pjsph.inspectoruhc.spawns.SpawnsManager;
 import me.pjsph.inspectoruhc.spectators.SpectatorsManager;
+import me.pjsph.inspectoruhc.teams.Team;
 import me.pjsph.inspectoruhc.timer.TimerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -85,6 +86,8 @@ public class InspectorUHC extends JavaPlugin {
         goldenHead.setIngredient('G', Material.GOLD_INGOT);
         goldenHead.setIngredient('H', Material.SKULL_ITEM, SkullType.PLAYER.ordinal());
         getServer().addRecipe(goldenHead);
+
+        Team.getTeams().forEach(team -> team.clear());
     }
 
     @Override
